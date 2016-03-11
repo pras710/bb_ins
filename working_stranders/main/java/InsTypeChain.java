@@ -4,20 +4,16 @@ import java.util.*;
 public class InsTypeChain implements Serializable//<InsTypeChain>
 {
 	ArrayList<ChainData> myChainDefinition;
-	//NOT SCALING WELL TreeSet<Long> lineNumberOccurrence;
-	//TreeSet<BasicBlock> lineNumberOccurrence;
 	boolean isCoprocBasedChain = false;
 	public void writeObject(ObjectOutputStream out)throws IOException
 	{
 		out.writeObject(myChainDefinition);
 		out.writeObject((Boolean)isCoprocBasedChain);
-		//out.writeObject(lineNumberOccurrence);
 	}
 	public void readObject(ObjectInputStream in)throws IOException, ClassNotFoundException
 	{
 		myChainDefinition = (ArrayList<ChainData>)in.readObject();
 		isCoprocBasedChain = (Boolean)in.readObject();
-		//lineNumberOccurrence = (TreeSet<BasicBlock>)in.readObject();
 	}
 	public InsTypeChain(ArrayList<ChainData> interd)
 	{
@@ -30,12 +26,10 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 				isCoprocBasedChain |= cd.isCoprocInstruction();
 			}
 		}
-		//lineNumberOccurrence = new TreeSet<>();
 	}
 	public InsTypeChain(ChainData interd)
 	{
 		myChainDefinition = new ArrayList<>();
-		//lineNumberOccurrence = new TreeSet<>();
 		myChainDefinition.add(interd);
 		isCoprocBasedChain |= interd.isCoprocInstruction();
 	}
@@ -57,7 +51,6 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 				break;
 			}
 		}
-		//ret.lineNumberOccurrence.addAll(this.lineNumberOccurrence);
 		return ret;
 	}
 	public InsTypeChain copyFromLoad()
@@ -83,17 +76,6 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 				ret.isCoprocBasedChain |= interd.isCoprocInstruction();
 				ret.addToChain(interd);
 			}
-//			try
-//			{
-//				ret.lineNumberOccurrence.addAll(this.lineNumberOccurrence);
-//			}
-//			catch(Exception e)
-//			{
-//				e.printStackTrace();
-//				System.out.println(ret.lineNumberOccurrence);
-//				System.out.println(this.lineNumberOccurrence);
-//				System.exit(0);
-//			}
 		}
 		return ret;
 	}
@@ -101,7 +83,6 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 	{
 		myChainDefinition.addAll(insd.myChainDefinition);
 		isCoprocBasedChain |= insd.isCoprocBasedChain;
-//		this.lineNumberOccurrence.addAll(insd.lineNumberOccurrence);
 	}
 	public void addToChain(ChainData insd)
 	{
@@ -123,46 +104,21 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 		length+=prevCd;
 		return "(b, totIns, length)=("+numBrs+","+length+","+myChainDefinition.size()+")";
 	}
-	public boolean contains(String pc)
-	{
-		for(ChainData cd:myChainDefinition)
-		{
-			if(cd.verbose().indexOf(pc)!=-1)
-			{
-				return true;
-			}
-		}
-		return false;
-	}
 	public void verbosePrint()
 	{
 		for(ChainData cd:myChainDefinition)
 		{
-			System.out.println(cd.verbose()+" haiboinst");
+			System.out.println(cd.verbose());
 		}
-//		System.out.println(lineNumberOccurrence);
 	}
 	public String toString()
 	{
 		return myChainDefinition.toString()+lengthCovered();
 		//return myChainDefinition.toString()+"["+lengthCovered()+"]";
 	}
-	public ArrayList<TreeSet<String>> getInsAndOuts()
-	{
-		ArrayList<TreeSet<String>> ret = new ArrayList<>();
-		ret.add(new TreeSet<String>());
-		ret.add(new TreeSet<String>());
-		for(ChainData cd:myChainDefinition)
-		{
-			ret.get(0).addAll(cd.inouts.get(0));
-			ret.get(1).addAll(cd.inouts.get(1));
-		}
-		return ret;
-	}
 	public InsTypeChain getACopy()
 	{
 		InsTypeChain newMe = new InsTypeChain(myChainDefinition);
-//		newMe.lineNumberOccurrence.addAll(this.lineNumberOccurrence);
 		return newMe;
 	}
 	public boolean isIdeal()

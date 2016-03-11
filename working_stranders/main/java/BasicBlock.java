@@ -3,33 +3,14 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.io.*;
 import java.sql.*;
-public class BasicBlock implements Serializable, Comparable<BasicBlock> 
+public class BasicBlock //implements Serializable<BasicBlock> 
 {
-	public int compareTo(BasicBlock b)
-	{
-		return (int)(b.lineNumber - this.lineNumber);
-	}
 	//static final long serialVersionUID = 1L;
-	public void readObject(ObjectInputStream in) throws Exception
-	{
-		readFromNet = true;
-		myIdStr = (String)in.readObject();
-		lineNumber = (Long)in.readObject();
-	}
-	public void writeObject(ObjectOutputStream out) throws Exception
-	{
-		out.writeObject(myIdStr);
-		out.writeObject((Long)lineNumber);
-	}
-
 	public String toString()
 	{
-		return lineNumber+"";
-		//return myStrands.toString();
+		return myStrands.toString();
 	}
-	boolean readFromNet = false;
 	ArrayList<String> instructions = new ArrayList<String>();
-	ArrayList<String> memoryLines = new ArrayList<String>();
 	ArrayList<String> opcode = new ArrayList<String>();
 	int my_tid = -1;
 	int my_def_uses = 0, max_length_in_out_flow = 0;
@@ -41,11 +22,6 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 	boolean notPrinted = true;
 	boolean containsCoProcIns = false;
 	String myIdStr = "not_yet", my_assoc_lib = "nothing";
-	long lineNumber = 0;
-	public void updateLineNumber(long line)
-	{
-		this.lineNumber = line;
-	}
 	ArrayList<InsTypeInterface> myInsType;
 	TreeSet<String> myInFields;
 	TreeSet<String> myOutFields;
@@ -66,21 +42,6 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 			System.out.println(ins);
 		}
 	}
-	public void emptyIntermediates()
-	{
-		if(opcode != null)opcode.clear();
-		if(in_data != null) in_data.clear();
-		if(out_data != null)out_data.clear();
-		if(in_nodes != null)in_nodes.clear();
-		if(out_nodes != null)in_nodes.clear();
-		if(realRoots!=null)realRoots.clear();
-		if(realLeaves!=null)realLeaves.clear();
-		//if(myStrands!=null)myStrands.clear();
-		if(myInsType != null)myInsType.clear();
-		if(myInFields != null)myInFields.clear();
-		if(myOutFields != null)myOutFields.clear();
-		//if(memoryLines != null)memoryLines.clear();
-	}
 	public void emptyAllButInstructions()
 	{
 		if(opcode != null)opcode.clear();
@@ -94,7 +55,6 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 		if(myInsType != null)myInsType.clear();
 		if(myInFields != null)myInFields.clear();
 		if(myOutFields != null)myOutFields.clear();
-		if(memoryLines != null)memoryLines.clear();
 	}
 	public static void printAllParseStats()
 	{
@@ -741,15 +701,6 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 		{
 			maintainMyDependenceEnds();
 		}
-	//NotSCALABLE	if(myStrands != null)
-	//NotSCALABLE	{
-	//NotSCALABLE		for(InsTypeChain ins:myStrands)
-	//NotSCALABLE		{
-	//NotSCALABLE			//ins.lineNumberOccurrence.add(this);
-	//NotSCALABLE			//NOT SCALABLE ins.lineNumberOccurrence.add(lineNumber);
-	//NotSCALABLE		}
-	//NotSCALABLE		//System.out.println(lineNumber);
-	//NotSCALABLE	}
 		//System.exit(0);
 	}
 	static int passedIns = 0, failedIns = 0;

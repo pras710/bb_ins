@@ -11,12 +11,21 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 	HashMap<String, Integer> homoChains;
 	HashMap<String, HashSet<InsTypeChain>> activeLoadStoreChains = new HashMap<>();
 	HashMap<String, Integer> completedLoadStoreChains = new HashMap<>();
-//	HashMap<String, InsTypeChain> insChainToKey = new HashMap<>();
+	HashMap<String, InsTypeChain> insChainToKey = new HashMap<>();
 	boolean postProcessed = false;
 	InsTypeChain longestStrand = null;
 	int totalDependenceEdges = 0;
 	long tid = -1;
-	TreeSet<String> myFinalStrands;
+	public void clearAll()
+	{
+		destinationStrandMap.clear();
+		prevMaintains.clear();
+		prevRawChains.clear();
+		homoChains.clear();
+		activeLoadStoreChains.clear();
+		completedLoadStoreChains.clear();
+		insChainToKey.clear();
+	}
 	private void readObject(ObjectInputStream in)throws IOException, ClassNotFoundException
 	{
 		destinationStrandMap = (HashMap<String, InsTypeChain>)in.readObject();
@@ -29,8 +38,7 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		postProcessed = (Boolean)in.readObject();
 		totalDependenceEdges = (Integer)in.readObject();
 		tid = (Long)in.readObject();
-		myFinalStrands = (TreeSet<String>)in.readObject();
-//		insChainToKey = (HashMap<String, InsTypeChain>)in.readObject();
+		insChainToKey = (HashMap<String, InsTypeChain>)in.readObject();
 	}
 	private void writeObject(ObjectOutputStream out)throws IOException
 	{
@@ -44,8 +52,7 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		out.writeObject((Boolean)postProcessed);
 		out.writeObject((Integer)totalDependenceEdges);
 		out.writeObject((Long)tid);
-		out.writeObject(myFinalStrands);
-//		out.writeObject(insChainToKey);
+		out.writeObject(insChainToKey);
 	}
 	static int objCount = 0;
 	public StrandMaintainer(long tid)
@@ -58,23 +65,10 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		destinationStrandMap = new HashMap<>();
 		//subChains = new HashMap<>();
 		homoChains = new HashMap<>();
-		myFinalStrands = new TreeSet<String>();
 	}
 	public void addAllChains(StrandMaintainer sm)
 	{
-		//System.out.println("calling this:");
-//		for(String s:sm.insChainToKey.keySet())
-//		{
-//			InsTypeChain ins = this.insChainToKey.get(s);
-//			if(ins != null)
-//			{
-//				//ins.lineNumberOccurrence.addAll(sm.insChainToKey.get(s).lineNumberOccurrence);
-//			}
-//			else
-//			{
-//				this.insChainToKey.put(s, sm.insChainToKey.get(s));
-//			}
-//		}
+		System.out.println("calling this:");
 		for(String s:sm.activeLoadStoreChains.keySet())
 		{
 			HashSet<InsTypeChain> insThis = this.activeLoadStoreChains.get(s),
@@ -197,10 +191,9 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 			{
 				System.out.println("completed bb number: "+bb_count_stat+" "+strand_stat+" "+coprocChain);
 			}
-			if(bb_count_stat >= 20000)
+			if(bb_count_stat >= 40000)
 			{
-				//System.out.println(this.toString());
-				toString();
+				System.out.println(this.toString());
 				this.clearAll();
 			}
 		}
@@ -216,21 +209,6 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		{
 			iCount = 0;
 		}
-//		else
-//		{
-//			InsTypeChain prev = insChainToKey.get(ins.toString());
-//			if(prev != null)
-//			{
-//				//System.out.println(ins.lineNumberOccurrence+" "+iCount);
-//				ins.lineNumberOccurrence.addAll(prev.lineNumberOccurrence);
-//				System.out.println(prev.lineNumberOccurrence+" "+ins.lineNumberOccurrence+" "+(iCount+1));
-//			}
-//			else //if(prev == null)
-//			{
-//				System.out.println("inschain to key is not good!");
-//				System.exit(0);
-//			}
-//		}
 		iCount += 1;
 		if(max_count < iCount)
 		{
@@ -253,9 +231,9 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		{
 			//System.out.println(completedLoadStoreChains.size());
 		}
-		//int i = 1;
-		//if(completedLoadStoreChains.size() > 1500)
-		for(int i = 1; i <= 150 && completedLoadStoreChains.size() > 1500; i++)
+		//for(int i = 1; i <= 150 && completedLoadStoreChains.size() > 1500; i++)
+		int i = 1;
+		if(completedLoadStoreChains.size() > 1500)
 		{
 			//int max = 1000000;
 			//String key = "";
@@ -270,21 +248,13 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 			//completedLoadStoreChains.remove(key);
 			if(completedLoadStoreChains.containsValue(i))
 			{
-		//		for(Map.Entry<String, Integer> ent: completedLoadStoreChains.entrySet())
-		//		{
-		//			if(ent.getValue() == i)
-		//			{
-		//				insChainToKey.remove(ent.getKey());
-		//			}
-		//		}
-				while(completedLoadStoreChains.values().remove(i)){
-				}
+				completedLoadStoreChains.values().remove(i);
 			}
 		}
 		completedLoadStoreChains.put(ins.toString(), iCount);
-		//if(iCount > 50)
+		if(iCount > 50)
 		{
-	//		insChainToKey.put(ins.toString(), ins);
+			insChainToKey.put(ins.toString(), ins);
 		}
 	}
 	public void pickAllLoads(InsTypeChain ins, HashSet<InsTypeChain> current)
@@ -393,16 +363,6 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		totalDependenceEdges += (prev.size() - 1);
 		prevMaintains.put(prev.toString(), i);
 	}
-	public void clearAll()
-	{
-		destinationStrandMap.clear();
-		prevMaintains.clear();
-		prevRawChains.clear();
-		homoChains.clear();
-		activeLoadStoreChains.clear();
-		completedLoadStoreChains.clear();
-		//insChainToKey.clear();
-	}
 	public String toString()
 	{
 		boolean flag = true;
@@ -423,7 +383,7 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		{
 			//System.out.println(ent.getKey()+" "+ent.getKey().split(",").length+" > "+GetSrcDest.totalInstructions);
 			//if(ent.getValue() * (ent.getKey().split(",").length-3) > GetSrcDest.totalInstructions*0.01 && ent.getValue() > 50)
-			if(ent.getValue() > 100)
+			if(ent.getValue() > 50)
 			{
 				if(flag)
 				{
@@ -431,25 +391,9 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 					flag = false;
 				}
 				System.out.println(ent.getKey()+","+LightStrander.tidStringTracker.get(tid+"")+","+tid+""+"\t"+ent.getValue());
-				myFinalStrands.add(ent.getKey());//+","+LightStrander.tidStringTracker.get(tid+"")+","+tid+""+"\t"+ent.getValue());
-				//insChainToKey.get(ent.getKey()).verbosePrint();
+				insChainToKey.get(ent.getKey()).verbosePrint();
 			}
 		}
-		boolean deleter = false;
-		do
-		{
-			deleter = false;
-			for(String s:completedLoadStoreChains.keySet())
-			{
-				if(completedLoadStoreChains.get(s) <= 100)
-				{
-					completedLoadStoreChains.remove(s);
-					//insChainToKey.remove(s);
-					deleter = true;
-					break;
-				}
-			}
-		}while(deleter);
 		return ""+flag;//"*****************"+tid;//strb.toString();
 	}
 	public String toStringOld()
