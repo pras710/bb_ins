@@ -3,6 +3,7 @@ import java.util.*;
 import java.io.*;
 public class StrandDataBased implements Serializable//<StrandDataBased>
 {
+	TrackedStrands tracked = null;
 	HashMap<String, InsTypeChain > destinationStrandMap;
 	HashMap<String, Integer> prevMaintains;
 	HashMap<String, HashSet<InsTypeChain>> activeLoadStoreChains = new HashMap<>();
@@ -15,6 +16,7 @@ public class StrandDataBased implements Serializable//<StrandDataBased>
 		activeLoadStoreChains = (HashMap<String, HashSet<InsTypeChain>>)in.readObject();
 		dataSoFar = (HashMap<String, String>)in.readObject();
 		topStrands = (TreeMap<String, HashMap<String, Integer>>)in.readObject();
+		tracked = (TrackedStrands)in.readObject();
 	}
 	private void writeObject(ObjectOutputStream out)throws IOException
 	{
@@ -23,9 +25,11 @@ public class StrandDataBased implements Serializable//<StrandDataBased>
 		out.writeObject(activeLoadStoreChains);
 		out.writeObject(dataSoFar);
 		out.writeObject(topStrands);
+		out.writeObject(tracked);
 	}
-	public StrandDataBased(TreeMap<String, HashMap<String, Integer>> topStrands)
+	public StrandDataBased(TreeMap<String, HashMap<String, Integer>> topStrands, TrackedStrands tracked)
 	{
+		this.tracked = tracked;
 		prevMaintains = new HashMap<>();
 		destinationStrandMap = new HashMap<>();
 		this.topStrands = topStrands;
@@ -46,9 +50,11 @@ public class StrandDataBased implements Serializable//<StrandDataBased>
 		//	this.activeLoadStoreChains.put(s, insSm);
 		//}
 	}
-	static int bb_count_stat = 0, strand_stat = 0, coprocChain = 0;
+	/*static*/ int bb_count_stat = 0, strand_stat = 0, coprocChain = 0;
+	int instructions = 0;
 	public void addNext(BasicBlock bb)
 	{
+		instructions += bb.insCount;
 		bb_count_stat++;
 		for(InsTypeChain ins:bb.myStrands)
 		{
@@ -122,11 +128,21 @@ public class StrandDataBased implements Serializable//<StrandDataBased>
 	public void idealize(InsTypeChain ins, long lineNumber, BasicBlock blockNow)
 	{
 		if(!ins.isIdeal())return;
+		if(!tracked.canGo(ins.getSubString()))
+		{
+		//	System.out.println("tracked says no!"+ins);
+			return;
+		}
 		if(ins.size() > 1000)return;
 		HashMap<String, Integer> hm = topStrands.get(ins.toString());
-		if(hm != null)
+		if(hm != null)//PRAS: put this if condition back
 		{
 			String temp = getData(lineNumber, ins, blockNow);
+			System.out.println("data line: "+ins.myChainDefinition.get(0).pc+" "+ins.toString()+" : "+temp);
+			if(1!=1)
+			{
+				return;//PRAS:remove the sys out and this return statement
+			}
 			Integer i = hm.get(temp);
 			if(i == null)
 			{
@@ -134,9 +150,33 @@ public class StrandDataBased implements Serializable//<StrandDataBased>
 			}
 			i++;
 			hm.put(temp, i);
-		}
-		else
-		{
+			temp = temp.substring(temp.indexOf("|^|"));
+			i = hm.get(temp);
+			if(i == null)
+			{
+				i = 0;
+			}
+			i++;
+			hm.put("pc:"+blockNow.myIdStr, -1);
+			if(i == 1 && hm.size() >= 100)
+			{
+				Integer dumm = hm.get("lengthExplosion");
+				if(dumm == null)
+				{
+					dumm = 0;
+				}
+				dumm++;
+				hm.put("lengthExplosion", dumm);
+				Integer length = hm.get("sizeExplosion");
+				if(length == null)
+				{
+					length = 0;
+				}
+				length += temp.length();
+				hm.put("sizeExplosion", length);
+				return;
+			}
+			hm.put(temp, i);
 		}
 	}
 	public String getData(long line_bb, InsTypeChain ins, BasicBlock blockNow)
@@ -264,6 +304,58 @@ public class StrandDataBased implements Serializable//<StrandDataBased>
 		//System.out.println(blockNow.myIdStr+" "+ret_out+" "+ret_in);
 		return ret_in.toString();
 	}
+	public void fixUpTopStrandsForGood()
+	{
+
+		for(String s:topStrands.keySet())
+		{
+			HashMap<String, Integer> hm = topStrands.get(s);
+			//ArrayList<String> removes = new ArrayList<>();
+			int count = 0, total = 0, size = 0, originalFreq = 0;
+			for(String ss:hm.keySet())
+			{
+				if(ss.equals("oFreq"))
+				{
+					originalFreq = hm.get(ss);
+				}
+				if(ss.startsWith("pc"))
+				{
+					s=ss+":"+s;
+					continue;
+				}
+				if(ss.equals("sizeExplosion"))continue;
+				Integer freq = hm.get(ss);
+				if(freq == 1)
+				{
+					//removes.add(ss);
+				}
+				else
+				{
+					if(!ss.equals("lengthExplosion"))
+					{
+						size += ss.length()/2;
+					}
+				}
+				count++;
+				total += freq;
+			}
+			//if(total/(float)count > 1.5)
+			{
+				//50% of the data gets accessed more than once print this as half guy..
+				int insSaved = (total*(s.split(",").length-6));
+				Integer sizeExplosion = hm.get("sizeExplosion");
+				if(sizeExplosion == null)sizeExplosion = 0;
+				System.out.println(s+"\t data used for memoization = "+hm);
+				System.out.println(s+"\t"+originalFreq+" if memoized saves: "+insSaved+" instructions (out of "+instructions+" = "+(insSaved*100.0/instructions)+"% with a table of size "+(sizeExplosion+size)+", uniques i/o = "+count);
+				if(count == 0 || size == 0)
+				{
+					System.out.println("PRASDEBUG: "+hm);
+				}
+				//System.out.println(s+" if memoized saves: "+(total*(s.split(",").length-3))+" instructions with a table of size "+size+", uniques i/o = "+count);
+			}
+			hm.clear();
+		}
+	}
 	public void pickAllLoads(InsTypeChain ins, HashSet<InsTypeChain> current, long lineNumber, BasicBlock blockNow)
 	{
 		while(ins != null)
@@ -307,6 +399,22 @@ public class StrandDataBased implements Serializable//<StrandDataBased>
 		for(InsTypeChain insk:removes)
 		{
 			current.remove(insk);
+		}
+		while(current.size() > 900)
+		{
+			InsTypeChain toRemove = null;//current.iterator().next();
+			int size = 0;//toRemove.size(); 
+			for(InsTypeChain inso :current)
+			{
+				int siz = inso.size();
+				if(siz > size)
+				{
+					toRemove = inso;
+				}
+			}
+			//System.out.print("removing?"+size+" "+current.size()+" "+toRemove+" ");
+			current.remove(toRemove);
+			//System.out.println(" "+current.size());
 		}
 	}
 	public void saveNew(InsTypeChain ins)

@@ -7,16 +7,18 @@ public class ChainData implements Serializable//<ChainData>
 	String operandName;
 	String comments;
 	String ins_name;
-	int insCount;
+	short insCount;
 	String pc;
 	ArrayList<ArrayList<String>> inouts;
+//	boolean verbosePrintedOnce = false;
 	public void readObject(ObjectInputStream in)throws IOException, ClassNotFoundException
 	{
 		insType = (InsTypeInterface)in.readObject();
 		operandName = (String)in.readObject();
 		comments = (String)in.readObject();
 		ins_name = (String)in.readObject();
-		insCount = (Integer)in.readObject();
+		insCount = (Short)in.readObject();
+		//insCount = (Integer)in.readObject();
 		pc = (String)in.readObject();
 		inouts = (ArrayList<ArrayList<String>>)in.readObject();
 	}
@@ -26,7 +28,8 @@ public class ChainData implements Serializable//<ChainData>
 		out.writeObject(operandName);
 		out.writeObject(comments);
 		out.writeObject(ins_name);
-		out.writeObject((Integer)insCount);
+		out.writeObject((Short)insCount);
+		//out.writeObject((Integer)insCount);
 		out.writeObject(pc);
 		out.writeObject(inouts);
 	}
@@ -50,7 +53,7 @@ public class ChainData implements Serializable//<ChainData>
 			System.out.println("chain data constructor is messed\n");
 			System.exit(0);
 		}
-		this.insCount = insCount;
+		this.insCount = (short)insCount;
 		this.insType = insType;
 		operandName = op;
 		this.comments = comments;
@@ -79,10 +82,65 @@ public class ChainData implements Serializable//<ChainData>
 		{
 			System.out.println(comments+" >>>>>>>>>>>"+ins_name+"<<<<<<<<<<");
 		}
+		String [][]nom = new String[][]{new String[]{"add", "sub", "adc", "neg", "abs"}, 
+			new String[]{"mul", "div", "ml", "mac", "msc", "sqrt"}, 
+			new String[]{"and", "or", "not", "bi", "sb", "bf", "sxt", "uxt", "ub", "rev"},
+			new String[]{"rsb", "lsb", "lsr", "rsr", "asr", "clz","rsl", "lsl"},
+			new String[]{"cmp", "cmn", "tst", "teq"},
+			new String[]{"ld", "pop"},
+			new String[]{"st", "push"},
+			new String[]{"mov", "mv", "mcr", "mrc", "msr", "mrs", "mrx","mxr", "cvt", "tos", "tou", "tod", "cpy", "nop"},
+			new String[]{"j", "tbh", "bl", "bx", "tb"},
+		};
+		//String [][]nom = new String[][]{new String[]{"add", "sub"}, 
+		//								new String[]{"mul", "div"}, 
+		//								new String[]{"and", "or", "not"},
+		//								new String[]{"rsb", "lsb"},
+		//								new String[]{"rsl", "lsl"},
+		//								new String[]{"cmp", "tst"},
+		//								new String[]{"ld", "pop"},
+		//								new String[]{"st", "push"},
+		//								new String[]{"mov"},
+		//								new String[]{"j", "tbh", "b"},
+		//								//new String[]{},
+		//};
+		if(ins_name.startsWith("ld"))
+		{
+			ins_name = "ld";
+		}
+		else
+		{
+			for(String s[]:nom)
+			{
+				for(String ss:s)
+				{
+					if(ins_name.indexOf(ss)!=-1)
+					{
+				//	if(ins_name.equals("rsb") && ss.equals("b"))
+				//	{
+				//		System.out.println("rsb <==> b");
+				//		//System.exit(0);
+				//	}
+					//System.out.println(ins_name+" <==> "+s[0]);
+						ins_name = s[0];
+						break;
+					}
+				}
+			}
+		}
 	}
 	public String verbose()
 	{
-		return insCount+" "+insType+" "+operandName+" "+comments+" ";//+pc;
+		//if(!verbosePrintedOnce)
+//		{
+		//	verbosePrintedOnce = true;
+			return pc;
+	//	}
+//		else
+//		{
+//			return "";
+//		}
+		//return insCount+" "+insType+" "+operandName+" "+comments+" ";//+pc;
 	}
 	public String toString()
 	{

@@ -19,6 +19,12 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 		isCoprocBasedChain = (Boolean)in.readObject();
 		//lineNumberOccurrence = (TreeSet<BasicBlock>)in.readObject();
 	}
+	public String getSubString()
+	{
+		String temp = myChainDefinition.toString();
+		temp = temp.substring(0, temp.length() - 1);
+		return temp;
+	}
 	public InsTypeChain(ArrayList<ChainData> interd)
 	{
 		myChainDefinition = new ArrayList<>();
@@ -134,17 +140,28 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 		}
 		return false;
 	}
+	boolean verbosePrintedOnce = false;
 	public void verbosePrint()
 	{
-		for(ChainData cd:myChainDefinition)
-		{
-			System.out.println(cd.verbose()+" haiboinst");
-		}
+		if(verbosePrintedOnce)return;
+		//else
+		System.out.println(myChainDefinition.get(0).verbose()+" haiboinst");
+		verbosePrintedOnce = true;
+		//PRAS: Comment out this FOR LOOP
+		//for(ChainData cd:myChainDefinition)
+		//{
+		//	System.out.println(cd.verbose()+" haiboinst");
+		//}
 //		System.out.println(lineNumberOccurrence);
 	}
 	public String toString()
 	{
-		return myChainDefinition.toString()+lengthCovered();
+		String ret = myChainDefinition.toString();//"";
+	//	for(ChainData cd:myChainDefinition)
+	//	{
+	//		ret +=cd.toString();
+	//	}
+		return ret+lengthCovered();
 		//return myChainDefinition.toString()+"["+lengthCovered()+"]";
 	}
 	public ArrayList<TreeSet<String>> getInsAndOuts()
@@ -182,6 +199,10 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 	public ChainData getSourceNode()
 	{
 		return myChainDefinition.get(0);
+	}
+	public String getStartingPC()
+	{
+		return getSourceNode().pc;
 	}
 	public ChainData getDestinationNode()
 	{

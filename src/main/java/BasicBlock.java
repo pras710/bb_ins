@@ -66,7 +66,7 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 			System.out.println(ins);
 		}
 	}
-	public void emptyIntermediates()
+	public void emptyIntermediates(final TrackedStrands tracked)
 	{
 		if(opcode != null)opcode.clear();
 		if(in_data != null) in_data.clear();
@@ -79,6 +79,18 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 		if(myInsType != null)myInsType.clear();
 		if(myInFields != null)myInFields.clear();
 		if(myOutFields != null)myOutFields.clear();
+		ArrayList<InsTypeChain> tempStrands = new ArrayList<>();
+		for(InsTypeChain ins:myStrands)
+		{
+			String temp = ins.myChainDefinition.toString();
+			temp = temp.substring(0, temp.length() - 1);
+			if(tracked.canGo(temp))
+			{
+				tempStrands.add(ins);
+			}
+		}
+		myStrands.clear();
+		myStrands = tempStrands;
 		//if(memoryLines != null)memoryLines.clear();
 	}
 	public void emptyAllButInstructions()

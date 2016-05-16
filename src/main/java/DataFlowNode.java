@@ -63,7 +63,12 @@ public class DataFlowNode
 		}
 		else 
 		{
-			currentChain.addToChain(new ChainData(this.insType, name.split(":")[0], name, insCount, inouts));
+			//PRAS: REMOVE THIS COMMENT LATER: 
+			if(!name.split(":")[1].equals(currentChain.myChainDefinition.get(currentChain.myChainDefinition.size() - 1).comments.split(":")[1]))
+			{
+				//System.out.println(name+" is added to "+currentChain.myChainDefinition.get(currentChain.myChainDefinition.size() - 1).comments);
+				currentChain.addToChain(new ChainData(this.insType, name.split(":")[0], name, insCount, inouts));
+			}
 		}
 
 		if(children.size() == 0 && parents.size() > 0)//CHECK: if children = 0, it stores something, but if it just gets inherited and not used?
