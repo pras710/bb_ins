@@ -312,7 +312,7 @@ public class SparkLightStrander
 			System.exit(0);
 		}
 	}
-	public static void main(String args[])throws Exception
+	public static void main1(String args[])throws Exception
 	{
 
 //		getSub("[(400d160c,13), (400d160c,13)]");

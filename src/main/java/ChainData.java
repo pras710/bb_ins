@@ -6,7 +6,7 @@ public class ChainData implements Serializable//<ChainData>
 	InsTypeInterface insType;
 	String operandName;
 	String comments;
-	String ins_name;
+	String ins_name, ins_name_orig;
 	short insCount;
 	String pc;
 	ArrayList<ArrayList<String>> inouts;
@@ -17,6 +17,7 @@ public class ChainData implements Serializable//<ChainData>
 		operandName = (String)in.readObject();
 		comments = (String)in.readObject();
 		ins_name = (String)in.readObject();
+		ins_name_orig = (String)in.readObject();
 		insCount = (Short)in.readObject();
 		//insCount = (Integer)in.readObject();
 		pc = (String)in.readObject();
@@ -28,6 +29,7 @@ public class ChainData implements Serializable//<ChainData>
 		out.writeObject(operandName);
 		out.writeObject(comments);
 		out.writeObject(ins_name);
+		out.writeObject(ins_name_orig);
 		out.writeObject((Short)insCount);
 		//out.writeObject((Integer)insCount);
 		out.writeObject(pc);
@@ -103,7 +105,9 @@ public class ChainData implements Serializable//<ChainData>
 		//								new String[]{"mov"},
 		//								new String[]{"j", "tbh", "b"},
 		//								//new String[]{},
+		//
 		//};
+		ins_name_orig = ins_name;
 		if(ins_name.startsWith("ld"))
 		{
 			ins_name = "ld";
@@ -128,6 +132,10 @@ public class ChainData implements Serializable//<ChainData>
 				}
 			}
 		}
+	}
+	public String original()
+	{
+		return ins_name_orig;
 	}
 	public String verbose()
 	{

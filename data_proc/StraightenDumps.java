@@ -64,9 +64,18 @@ public class StraightenDumps
 				}
 				else
 				{
-					String pc = strb.toString().split(" ")[1].trim();
-					pctobb.put(pc.trim(), strb);
-					pw.println(strb);
+					try
+					{
+						String pc = strb.toString().split(" ")[1].trim();
+						pctobb.put(pc.trim(), strb);
+						pw.println(strb);
+					}
+					catch(Exception e)
+					{
+						System.out.println(strb);
+						e.printStackTrace();
+						System.exit(0);
+					}
 				}
 				//System.out.println(strb.toString());
 				strb = new StringBuilder("");
@@ -83,13 +92,14 @@ public class StraightenDumps
 	{
 		BufferedReader br = new BufferedReader(new FileReader(args[0]));
 		String line = "";
-		PrintWriter bbs = new PrintWriter(new FileOutputStream(args[0]+"_bbs"));
+		PrintWriter bbs = new PrintWriter(System.out);//new PrintWriter(new FileOutputStream(args[0]+"_bbs"));
 		PrintWriter mem = new PrintWriter(new FileOutputStream(args[0]+"_mem"));
 		PrintWriter garb = new PrintWriter(new FileOutputStream(args[0]+"_garb"));
 		int lineNumber = 0;
 		while((line = br.readLine())!=null)
 		{
 			printAppropriately(line, bbs, mem, garb, lineNumber++);
+			if(lineNumber ==10000)break;
 		}
 		br.close();
 		bbs.flush();
