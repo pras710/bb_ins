@@ -453,11 +453,15 @@ public class GroupConcise
 					if(tempIter != null && totInsNow.trim().length() != 0)
 					{
 						Map.Entry<String, GroupConcise> gcontem = tempIter.lastEntry();
-						double perc = (gcontem.getValue().numInsSaved * 100.0/Integer.parseInt(totInsNow));
-						if(perc > 1)
+						if(gcontem != null)
 						{
-							flagAboveEight = true;
-//							System.out.println(perc+"::::::::: "+gcontem.getKey()+" "+gcontem.getValue());
+							System.out.println(gcontem);
+							double perc = (gcontem.getValue().numInsSaved * 100.0/Integer.parseInt(totInsNow));
+							if(perc > 1)
+							{
+								flagAboveEight = true;
+//								System.out.println(perc+"::::::::: "+gcontem.getKey()+" "+gcontem.getValue());
+							}
 						}
 					}
 					tempIter = new TreeMap<>();//GroupConcise();
@@ -628,7 +632,7 @@ public class GroupConcise
 		catch(Exception e)
 		{
 			e.printStackTrace();
-			System.out.println("coming here?");
+			System.out.println("coming here?"+totInsNow);
 			System.exit(0);
 		}
 //		countTot += hset.size();
@@ -735,7 +739,7 @@ public class GroupConcise
 		for(String file:dirContents)
 		{
 			//if(file.indexOf("music")==-1)continue;
-			if(file.endsWith("_final_strand_dump"))
+			if(file.endsWith("photogallery_final_strand_dump"))
 			{
 				masterChain.totalCounter = 0;
 				String key = "map";

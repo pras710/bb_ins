@@ -225,11 +225,13 @@ public enum Ins32BitTypes implements InsTypeInterface
 							}
 							return "";
 						}
-					}), new ConditionInOut(21, 0, 16, 4, true, new AddressLengthReturner(){
+					}), new ConfirmedInOut(16, 4, true, new AddressLengthReturner(){
+					//}), new ConditionInOut(21, 0, 16, 4, true, new AddressLengthReturner(){
 						public String returnLength(long opcode)
 						{
 							if(((opcode>>20)&0xff)==0x30)return "disregard";
 							if(((opcode>>20)&0xff)==0x34)return "disregard";
+							if(((opcode>>20)&0xf)==0x2)return "disregard";
 							return "";
 						}
 						})}),
@@ -307,7 +309,7 @@ public enum Ins32BitTypes implements InsTypeInterface
 	//			})}),
 			new InOut[]{new ConditionInOut(21, 1, 16, 4), new ConditionInOut(20, 1, 0, 15), new ConditionInOut(20, 0, 16, 4, true, new AddressLengthReturner(){
 				public String returnLength(long opcode)
-				{
+				{//nobody cares about this anymore!!!
 					int count = 0;
 					for(int i = 0; i <= 15; i++)
 					{
@@ -318,7 +320,7 @@ public enum Ins32BitTypes implements InsTypeInterface
 				})}, 
 			new InOut[]{new ConditionInOut(20, 0, 0, 15), new ConditionInOut(20, 1, 16, 4, true, new AddressLengthReturner(){
 				public String returnLength(long opcode)
-				{
+				{//nobody cares about this anymore!!!
 					int count = 0;
 					for(int i = 0; i <= 15; i++)
 					{

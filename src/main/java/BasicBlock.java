@@ -58,6 +58,7 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 	HashMap<String, DataFlowNode> in_nodes = new HashMap<>(),
 		out_nodes = new HashMap<>();
 	HashSet<DataFlowNode> realRoots, realLeaves;
+	ArrayList<DataFlowNode> allDataFlown = new ArrayList<>();
 	ArrayList<InsTypeChain> myStrands;
 	public  void printStrands()
 	{
@@ -68,6 +69,7 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 	}
 	public void emptyIntermediates(final TrackedStrands tracked)
 	{
+		if(allDataFlown != null)allDataFlown.clear();
 		if(opcode != null)opcode.clear();
 		if(in_data != null) in_data.clear();
 		if(out_data != null)out_data.clear();
@@ -86,7 +88,16 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 			temp = temp.substring(0, temp.length() - 1);
 			if(tracked.canGo(temp))
 			{
+				for(ChainData cd:ins.myChainDefinition)
+				{
+					cd.inouts.get(0).clear();
+				}
 				tempStrands.add(ins);
+			}
+			else
+			{
+				System.out.println("removing strand from bb:"+ins);
+				System.exit(0);
 			}
 		}
 		myStrands.clear();
@@ -95,6 +106,7 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 	}
 	public void emptyAllButInstructions()
 	{
+		if(allDataFlown != null)allDataFlown.clear();
 		if(opcode != null)opcode.clear();
 		if(in_data != null) in_data.clear();
 		if(out_data != null)out_data.clear();
@@ -142,12 +154,21 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 		realRoots = new HashSet<DataFlowNode>();
 		realLeaves = new HashSet<DataFlowNode>();
 		myStrands = new ArrayList<>();
-		for(DataFlowNode dfn:out_nodes.values())
+		for(DataFlowNode dfn:allDataFlown)//out_nodes.values())
 		{
+			for(DataFlowNode dofn:allDataFlown)
+			{
+				dofn.visited = false;
+			}
 			dfn.getRoots(tempRoots, realRoots);
 		}
-		for(DataFlowNode dfn:in_nodes.values())
+//		System.out.println("real roots are: "+realRoots.iterator().next().children);
+		for(DataFlowNode dfn:allDataFlown)//in_nodes.values())
 		{
+			for(DataFlowNode dofn:allDataFlown)
+			{
+				dofn.visited = false;
+			}
 			dfn.getLeaves(tempLeaves, realLeaves, myStrands, null);
 		}
 		//if(startingPC == 0x40043dc0)
@@ -670,13 +691,22 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 		System.out.println("done all! "+(mySuccess*100.0/(myInFields.size()+myOutFields.size())));
 	}
 	*/
-	public void defUserFormation(ArrayList< ArrayList<String>> alist, String result, String hexpc, String ins, InsTypeInterface insType, int insCount)
+	public void defUserFormation(ArrayList< ArrayList<String>> alist, String result, String hexpc, String ins, InsTypeInterface insType, int insCount, DataFlowNode dummyInputNodePHI)
 	{
 		HashMap<String, DataFlowNode> in_temp = new HashMap<>();
+		result = "";
 		if(result.length() == 0)
 		{
 			for(String s:alist.get(0))
 			{
+				try
+				{
+					Integer.parseInt(s.trim());
+					continue;
+				}
+				catch(Exception e)
+				{
+				}
 				if(s.startsWith("["))
 				{
 					myInFields.add("pc = "+hexpc);
@@ -684,50 +714,83 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 				else
 				{
 					DataFlowNode d_in = out_nodes.get(s);
-					DataFlowNode d_me = new DataFlowNode(s+":"+ins, insType, insCount, alist, hexpc);//replace ins with hexpc
-					if(d_in != null)
+					if(d_in == null)
 					{
-						d_me.addParent(d_in, true);
-						d_in.addChild(d_me);
-						if(culpritDetector)
+						d_in = dummyInputNodePHI;
+					}
+					try
+					{
+						DataFlowNode d_me = new DataFlowNode(s+":"+ins, insType, insCount, alist, hexpc);//replace ins with hexpc
+						allDataFlown.add(d_me);
+						if(d_in != null)
 						{
-							//System.out.println("adding edge from "+d_in.name+" to "+d_me.name);
+							d_me.addParent(d_in, true);
+							d_in.addChild(d_me);
+							if(culpritDetector)
+							{
+//								System.out.println("adding edge from "+d_in.name+" to "+d_me.name);
+							}
+							my_def_uses++;
 						}
-						my_def_uses++;
+						else
+						{
+							System.out.println("should not come here anymore!! "+dummyInputNodePHI+" is null");
+							System.exit(0);
+							//in_nodes.remove(s);
+							in_nodes.put(s, d_me);
+						}
+						in_temp.put(s,d_me);
+						myInFields.add(s);
 					}
-					else
+					catch(Exception e)
 					{
-						//in_nodes.remove(s);
-						in_nodes.put(s,d_me);
+						e.printStackTrace();
+						System.exit(0);
 					}
-					in_temp.put(s,d_me);
-					myInFields.add(s);
 				}
 			}
 		}
 		for(String s:alist.get(1))
 		{
+			try
+			{
+				Integer.parseInt(s.trim());
+				continue;
+			}
+			catch(Exception e)
+			{
+			}
 			if(s.startsWith("["))
 			{
 				myOutFields.add("pc = "+hexpc);
 			}
 			else
 			{
-				DataFlowNode d_me = new DataFlowNode(s+":"+ins, insType, insCount, alist, hexpc);//ins == hexpc
-				for(String in_s:in_temp.keySet())
+				try
 				{
-					d_me.addParent(in_temp.get(in_s), false);
-					in_temp.get(in_s).addChild(d_me);
-					if(culpritDetector)
+					DataFlowNode d_me = new DataFlowNode(s+":"+ins, insType, insCount, alist, hexpc);//ins == hexpc
+					allDataFlown.add(d_me);
+					for(String in_s:in_temp.keySet())
 					{
-						//System.out.println("adding edge from "+in_temp.get(in_s).name+" to "+d_me.name);
+						d_me.addParent(in_temp.get(in_s), false);
+						in_temp.get(in_s).addChild(d_me);
+						if(culpritDetector)
+						{
+//							System.out.println("adding edge from "+in_temp.get(in_s).name+" to "+d_me.name);
+						}
 					}
+					out_nodes.remove(s);
+					out_nodes.put(s, d_me);
+					myOutFields.add(s);
 				}
-				out_nodes.remove(s);
-				out_nodes.put(s, d_me);
-				myOutFields.add(s);
+				catch(Exception e)
+				{
+					e.printStackTrace();
+					System.exit(0);
+				}
 			}
 		}
+//		System.out.println(in_nodes+" "+out_nodes+" "+myInFields+" "+myOutFields);
 	}
 	public void fillInsAndOuts()
 	{
@@ -744,15 +807,33 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 		//if(GetSrcDest.linesRead < 18400000)return;
 		myInsType = new ArrayList<>();
 		int insCount = 0;
+		//System.out.println("****************************");
+		ArrayList<ArrayList<String>> philist = new ArrayList<>();
+		philist.add(new ArrayList<String>());
+		philist.add(new ArrayList<String>());
+		DataFlowNode dummyInputNodePHI = null;
+		try
+		{
+			dummyInputNodePHI = new DataFlowNode("phi:badbadba badbabe5 nop", Ins32BitTypes.Undefined, 0xbad, philist, "badbabe5");
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			System.exit(0);
+		}
 		for(String ins:instructions)
 		{
-			manageInstructionParams(ins, insCount++);
+			ArrayList<ArrayList<String>> atliem = manageInstructionParams(ins, insCount++, dummyInputNodePHI);
+	//		System.out.println(ins+" "+myInsType.get(insCount - 1)+" "+atliem);
 		}
 		//PRAS REMOVE THIS COMMENT the maintain my dependence ends is important!!!
 		if(!LightStrander.insDecodeDebug)
 		{
 			maintainMyDependenceEnds();
 		}
+		//System.out.println(instructions+"\n"+myStrands+" are the strands now!!  "+myInFields+" "+myOutFields);
+		//System.out.println("****************************");
+		//System.out.println(instructions);
 	//NotSCALABLE	if(myStrands != null)
 	//NotSCALABLE	{
 	//NotSCALABLE		for(InsTypeChain ins:myStrands)
@@ -768,7 +849,7 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 	boolean culpritDetector = true;
 	String culpritString = "";
 	static Hashtable<String, Integer> ht_insFails = new Hashtable<>();
-	public void manageInstructionParams(String ins, int insCount)
+	public ArrayList<ArrayList<String>> manageInstructionParams(String ins, int insCount, DataFlowNode dummyInputNodePHI)
 	{
 		ins = ins.trim();
 		//culpritDetector = (startingPC == 0x40043dc0);
@@ -859,7 +940,13 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 				boolean test = checkInOutForCredibility(alist, ins, opcd);
 				if(test)
 				{
+					InsTypeInterface insTypeO = insType;
 					insType = Ins32BitTypes.getMyType(opcode);
+					if(insType == Ins32BitTypes.DataProcPSRTransfer)
+					{
+						System.out.println("original = "+insTypeO+alist);
+
+					}
 					//boolean test = checkInOutForCredibility(alist, ins, opcd);
 					//if(test)
 					//{
@@ -971,7 +1058,11 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 		}
 		else
 		{
-			defUserFormation(alist, result, hexpc, ins, insType, insCount );
+//			if(insType == Ins32BitTypes.SingleDataTransfer)
+//			{
+//				System.out.println(alist+" "+ins+" ");
+//			}
+			defUserFormation(alist, result, hexpc, ins, insType, insCount, dummyInputNodePHI );
 			passedIns++;
 			Integer cou = ht_insFails.get(insType.toString()+"pass");
 			if(cou == null)
@@ -990,6 +1081,7 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 				//	System.out.println("***********************************");
 			}
 		}
+		return alist;
 	}
 	public boolean checkInOutForCredibility(ArrayList<ArrayList<String> > alist, String ins, String opcd)
 	{
@@ -1106,6 +1198,50 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 			addToList(retList, ins);
 		}
 		//return retList;
+	//	if(insType == Ins32BitTypes.DataProcPSRTransfer)
+	//	{
+	//		System.out.println(alist+" became "+retList);
+	//	}
+		////////////////////LAST LINE OF DEFENCE! PUT ALL OPERANDS FROM THE MNEMONICS
+		String ins_mod[] = ins.replaceAll("\\[", "").replaceAll("\\]", "").replaceAll("\\}", "").replaceAll("\\{", "").split(",");
+		for(String s:ins_mod)
+		{
+			String orig = s;
+			s = s.trim().replaceAll("\t"," ");
+			s = s.substring(s.lastIndexOf(" ")+1);
+			boolean num = false;
+			try
+			{
+				Integer.parseInt(s);
+				num = true;
+			}
+			catch(Exception e)
+			{
+				num = false;
+			}
+			if(s.startsWith("#") || retList.toString().indexOf(s) != -1 || s.startsWith("0x") || num)continue;
+			if(orig.equals(ins_mod[0]))
+			{
+//				System.out.println("changing"+s);
+				retList.get(1).add(s);
+			}
+			else
+			{
+//				System.out.println("changing o"+s);
+				retList.get(0).add(s);
+			}
+		}
+		if(ins.indexOf("push")!=-1 || ins.indexOf("pop")!=-1)
+		{
+			if(retList.get(0).toString().indexOf("sp")==-1)
+			{
+				retList.get(0).add("sp");
+			}
+			if(retList.get(1).toString().indexOf("sp")==-1)
+			{
+				retList.get(1).add("sp");
+			}
+		}
 		alist.clear();
 		alist.addAll(retList);
 		return exitCondition;

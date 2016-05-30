@@ -57,6 +57,13 @@ public class ChainData implements Serializable//<ChainData>
 		}
 		this.insCount = (short)insCount;
 		this.insType = insType;
+		//if(inouts.get(0).toString().indexOf(op) == -1)
+		if(inouts.toString().indexOf(op) == -1)
+		{
+			System.out.println(comments);
+			System.out.println("inouts does not contain op: "+inouts+" op = **"+op+"**");
+			System.exit(0);
+		}
 		operandName = op;
 		this.comments = comments;
 		String nexPrev = "";
@@ -84,9 +91,22 @@ public class ChainData implements Serializable//<ChainData>
 		{
 			System.out.println(comments+" >>>>>>>>>>>"+ins_name+"<<<<<<<<<<");
 		}
+		ins_name_orig = ins_name;
+		//if(!StrandMaintainer.PRINT_ALL_STRANDS)
+		{
+			putANewNameForMe();
+		}
+	}
+	public boolean matches(ChainData cd)
+	{
+		return (cd.ins_name_orig.equals(this.ins_name_orig) && this.inouts.toString().equals(cd.inouts.toString()));
+	}
+	public void putANewNameForMe()
+	{
+
 		String [][]nom = new String[][]{new String[]{"add", "sub", "adc", "neg", "abs"}, 
 			new String[]{"mul", "div", "ml", "mac", "msc", "sqrt"}, 
-			new String[]{"and", "or", "not", "bi", "sb", "bf", "sxt", "uxt", "ub", "rev"},
+			new String[]{"and", "cb", "or", "not", "bi", "sb", "bf", "sxt", "uxt", "ub", "rev"},
 			new String[]{"rsb", "lsb", "lsr", "rsr", "asr", "clz","rsl", "lsl"},
 			new String[]{"cmp", "cmn", "tst", "teq"},
 			new String[]{"ld", "pop"},
@@ -107,7 +127,6 @@ public class ChainData implements Serializable//<ChainData>
 		//								//new String[]{},
 		//
 		//};
-		ins_name_orig = ins_name;
 		if(ins_name.startsWith("ld"))
 		{
 			ins_name = "ld";
@@ -152,7 +171,7 @@ public class ChainData implements Serializable//<ChainData>
 	}
 	public String toString()
 	{
-		return ins_name;//+":"+inouts;//+"_"+comments;
+		return ins_name;//+":"+inouts;//+"_"+comments
 		//return insCount+":"+ins_name;//+":"+inouts;//+"_"+comments;
 		//return insType.toString();//+"_"+comments;
 	}
