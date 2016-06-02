@@ -112,7 +112,7 @@ public class ChainData implements Serializable//<ChainData>
 			new String[]{"ld", "pop"},
 			new String[]{"st", "push"},
 			new String[]{"mov", "mv", "mcr", "mrc", "msr", "mrs", "mrx","mxr", "cvt", "tos", "tou", "tod", "cpy", "nop"},
-			new String[]{"j", "tbh", "bl", "bx", "tb"},
+			new String[]{"j", "tbh", "b." ,"bl", "bx", "tb"},
 		};
 		//String [][]nom = new String[][]{new String[]{"add", "sub"}, 
 		//								new String[]{"mul", "div"}, 

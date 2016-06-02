@@ -63,6 +63,10 @@ public class DataFlowNode
 			df.printMe(strb);
 		}
 	}
+	public ChainData getAChainData()
+	{
+		return new ChainData(this.insType, name.split(":")[0], name, insCount, inouts);
+	}
 	public void getLeaves(HashSet<DataFlowNode> hs, HashSet<DataFlowNode> output, ArrayList<InsTypeChain> strands, InsTypeChain currentChain)
 	{
 		if(this.visited)return;

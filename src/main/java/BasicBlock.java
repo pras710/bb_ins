@@ -154,6 +154,18 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 		realRoots = new HashSet<DataFlowNode>();
 		realLeaves = new HashSet<DataFlowNode>();
 		myStrands = new ArrayList<>();
+		ArrayList<ChainData> chains = new ArrayList<>();
+		for(DataFlowNode dfn:allDataFlown)
+		{
+			chains.add(dfn.getAChainData());
+		}
+		InsTypeChain insChains = new InsTypeChain(chains);
+		myStrands.add(insChains);
+		///THIS IS TO SPEED THE WHOLE PROCESS UP
+		if(1==1)
+		{
+			return;
+		}
 		for(DataFlowNode dfn:allDataFlown)//out_nodes.values())
 		{
 			for(DataFlowNode dofn:allDataFlown)

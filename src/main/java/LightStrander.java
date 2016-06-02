@@ -166,7 +166,9 @@ public class LightStrander
 										strm.addNext(b, -1L);
 									}
 								}
+								System.out.println("calling to string function");
 								strm.toString();
+								System.out.println("printed something?");
 								ArrayList<scala.Tuple2<String, Integer>> ret = new ArrayList<>();
 								for(String s:strm.myFinalStrands.keySet())
 								{

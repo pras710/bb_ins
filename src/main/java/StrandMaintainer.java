@@ -3,93 +3,60 @@ import java.util.*;
 import java.io.*;
 public class StrandMaintainer implements Serializable//<StrandMaintainer>
 {
-	public static final byte THRESHOLD = 20;
+	public static final int THRESHOLD = 200;
 	public static final int THRESHOLD_1000 = 1000;
 	public static final byte THRESHOLD_PERC = 1;
-	public static final boolean PRINT_ALL_STRANDS = true;
-	//public static final boolean PRINT_ALL_STRANDS = false;
+	//public static final boolean PRINT_ALL_STRANDS = true;
+	public static final boolean PRINT_ALL_STRANDS = false;
 	//ORIGINAL PRAS: public static final byte THRESHOLD = 20;
-//	HashMap<String, InsTypeChain > destinationStrandMap;
 	TrackedStrands tracked = null;
-	//HashMap<String, ArrayList<InsTypeChain> > destinationStrandMap;
 	HashMap<String, Integer> prevMaintains;
 	ArrayList<InsTypeChain> prevRawChains;
-	//HashMap<String, Integer> subChains;
-//	HashMap<String, Integer> homoChains;
 	HashMap<String, HashSet<InsTypeChain>> activeLoadStoreChains = new HashMap<>();
 	HashMap<String, HashMap<String, Integer>> completedLoadStoreChains = new HashMap<>();
-//	HashMap<String, HashSet<String>> completedLoadStoreBBPCs = new HashMap<>();
-//	HashMap<String, InsTypeChain> insChainToKey = new HashMap<>();
 	boolean postProcessed = false;
 	InsTypeChain longestStrand = null;
 	int totalDependenceEdges = 0;
 	long tid = -1;
 	TreeMap<String, Integer> myFinalStrands;
-	int instructions = 0;
+	int instructions = 0, bloatedInstructions = 0;
+	long maxMem = Runtime.getRuntime().maxMemory();
 	private void readObject(ObjectInputStream in)throws IOException, ClassNotFoundException
 	{
-		//destinationStrandMap = (HashMap<String, InsTypeChain>)in.readObject();
 		prevMaintains = (HashMap<String, Integer>)in.readObject();
 		prevRawChains = (ArrayList<InsTypeChain>)in.readObject();
-		//homoChains = (HashMap<String, Integer>)in.readObject();
 		activeLoadStoreChains = (HashMap<String, HashSet<InsTypeChain>>)in.readObject();
-//		System.out.println(activeLoadStoreChains.size()+" read actives");
 		completedLoadStoreChains = (HashMap<String, HashMap<String, Integer>>)in.readObject();
-//		completedLoadStoreBBPCs = (HashMap<String, HashSet<String>>)in.readObject();
 		longestStrand = (InsTypeChain)in.readObject();
 		postProcessed = (Boolean)in.readObject();
 		totalDependenceEdges = (Integer)in.readObject();
 		tid = (Long)in.readObject();
 		myFinalStrands = (TreeMap<String, Integer>)in.readObject();
 		tracked = (TrackedStrands)in.readObject();
-//		insChainToKey = (HashMap<String, InsTypeChain>)in.readObject();
 	}
 	private void writeObject(ObjectOutputStream out)throws IOException
 	{
-//		out.writeObject(destinationStrandMap);
 		out.writeObject(prevMaintains);
 		out.writeObject(prevRawChains);
-//		out.writeObject(homoChains);
 		out.writeObject(activeLoadStoreChains);
 		out.writeObject(completedLoadStoreChains);
-//		out.writeObject(completedLoadStoreBBPCs);
 		out.writeObject(longestStrand);
 		out.writeObject((Boolean)postProcessed);
 		out.writeObject((Integer)totalDependenceEdges);
 		out.writeObject((Long)tid);
 		out.writeObject(myFinalStrands);
 		out.writeObject(tracked);
-//		out.writeObject(insChainToKey);
 	}
-	//*static*/ int objCount = 0;
 	public StrandMaintainer(long tid, TrackedStrands tracked)
 	{
 		this.tracked = tracked;
-		//System.out.println("creating obj count = "+objCount);
-		//objCount++;
 		this.tid = tid;
 		prevMaintains = new HashMap<>();
 		prevRawChains = new ArrayList<>();
-//		destinationStrandMap = new HashMap<>();
-		//subChains = new HashMap<>();
-		//homoChains = new HashMap<>();
 		myFinalStrands = new TreeMap<String, Integer>();
 	}
 	public void addAllChains(StrandMaintainer sm)
 	{
-		//System.out.println("calling this:");
-//		for(String s:sm.insChainToKey.keySet())
-//		{
-//			InsTypeChain ins = this.insChainToKey.get(s);
-//			if(ins != null)
-//			{
-//				//ins.lineNumberOccurrence.addAll(sm.insChainToKey.get(s).lineNumberOccurrence);
-//			}
-//			else
-//			{
-//				this.insChainToKey.put(s, sm.insChainToKey.get(s));
-//			}
-//		}
 		int countChains = 0;
 		for(String s:sm.activeLoadStoreChains.keySet())
 		{
@@ -112,71 +79,17 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 				intnow = new HashMap<String, Integer>();
 				this.completedLoadStoreChains.put(s, intnow);
 			}
-//			if(intnow + intsm > 50)
-//			{
-				for(String s_s:intsm.keySet())
+			for(String s_s:intsm.keySet())
+			{
+				Integer intMe = intnow.get(s_s);
+				if(intMe == null)
 				{
-					Integer intMe = intnow.get(s_s);
-					if(intMe == null)
-					{
-						intMe = 0;
-					}
-					intnow.put(s_s, intMe+intsm.get(s_s));
+					intMe = 0;
 				}
-//				HashSet<String> hsThis = completedLoadStoreBBPCs.get(s), 
-//					hsNow = sm.completedLoadStoreBBPCs.get(s);
-				//if(hsThis == null)
-				//{
-				//	hsThis = new HashSet<String>();
-				//}
-				//if(hsNow == null)
-				//{
-				//	System.out.println("hs now is null as well?");
-				//}
-				//hsThis.addAll(hsNow);
-				//completedLoadStoreBBPCs.put(s, hsThis);
-//				System.out.println(completedLoadStoreBBPCs);
-				//hsNow.clear();
-//			}
+				intnow.put(s_s, intMe+intsm.get(s_s));
+			}
 		}
 	}
-//	public void postProcess()
-//	{
-//		postProcessed = true;
-//		if(1==1)return;
-//		for(String s: destinationStrandMap.keySet())
-//		{
-//			//saveNew(destinationStrandMap.get(s));
-//			collectStatsFrom(destinationStrandMap.get(s));
-//		}
-//		//for(int i = 2; i <= 12; i++)
-//		//{
-//		//	for(InsTypeChain inChain: prevRawChains)
-//		//	{
-//		//		if(inChain.size() <= i)continue;
-//		//		//find sub-chains and maintain..
-//		//		ArrayDeque<ChainData> queue = new ArrayDeque<>();
-//		//		String key = inChain.toString();
-//		//		int multFactor = prevMaintains.get(key);
-//		//		for(ChainData c:inChain.myChainDefinition)
-//		//		{
-//		//			queue.add(c);
-//		//			if(queue.size() == i)
-//		//			{
-//		//				String addKey = queue.toString();
-//		//				queue.remove();
-//		//				Integer iT = prevMaintains.get(addKey);
-//		//				if(iT == null)
-//		//				{
-//		//					iT = 0;
-//		//				}
-//		//				iT = iT+multFactor;
-//		//				prevMaintains.put(addKey, iT);
-//		//			}
-//		//		}
-//		//	}
-//		//}
-//	}
 	public String findSizeOf()
 	{
 		int chain = 0;
@@ -209,105 +122,202 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 	{
 		instructions += bb.insCount;
 		bb_count_stat++;
-		if(tid != this.tid)
+
+		ArrayList<InsTypeChain> tracked = new ArrayList<>();
+		for(InsTypeChain insNow:bb.myStrands)
 		{
-			System.out.println("failing sanity check! tid mismatch: this = "+this.tid+" != "+tid);
-		}
-		if(postProcessed)
-		{
-			System.out.println("trying to add strand after post processing!!");
-			System.exit(0);
-		}
-		for(InsTypeChain ins:bb.myStrands)
-		{
-			if(PRINT_ALL_STRANDS)
-			{
-				System.out.println("inserting this: *"+ins);//+"  "+ins.myChainDefinition.get(0).operandName+" "+ins.myChainDefinition.get(0).inouts+" "+ins.myChainDefinition.get(0).comments);
-				ins.verbosePrint();
-				ins.verbosePrintedOnce = false;
-			}
 			strand_stat++;
-			//idealize(ins);
-			//if(1==1)continue;
-			if(ins.toString().indexOf("ld")!=-1)
-			{
-			}
-			HashSet<InsTypeChain> current = activeLoadStoreChains.get(ins.getSource());
-			if(current == null)
-			{
-				if(ins.isIdeal())
-				{
-					idealize(ins);
-				}
-				//current = new HashSet<>();
-				//System.out.println("storing"+ins);
-				//activeLoadStoreChains.put(ins.getDestination(), current);
-				for(String destIters:ins.getDestinationNode().inouts.get(1))
-				{
-					current = activeLoadStoreChains.get(destIters);
-					if(current == null)
-					{
-						current = new HashSet<>();
-						activeLoadStoreChains.put(destIters, current);
-					}
-					pickAllLoads(ins, current);
-				}
-				//ins = ins.copyFromLoad();
-				//if(ins != null)
-				//{
-				//	current.add(ins);
-				//}
-			}
-			else
-			{
-				addTillStore(ins, current);
-				for(String destIters:ins.getDestinationNode().inouts.get(1))
-				{
-					current = activeLoadStoreChains.get(destIters);
-					if(current == null)
-					{
-						current = new HashSet<>();
-						activeLoadStoreChains.put(destIters, current);
-					}
-					pickAllLoads(ins, current);
-				}
-			}
-			//InsTypeChain current = destinationStrandMap.get(ins.getSource());
-			//if(current == null)
-			//{
-			//	saveNew(ins);
-			//}
-			//else
-			//{
-			//	current.addToChain(ins);
-			//}
-			//System.out.println(activeLoadStoreChains.size()+" addnext adds to "+current.size()+" "+findSizeOf());
-			if(ins.isCoprocBasedChain)
+			if(insNow.isCoprocBasedChain)
 			{
 				coprocChain++;
 			}
-		}
-		if(PRINT_ALL_STRANDS)
-		{
-			for(String s:activeLoadStoreChains.keySet())
+			//Form Chains Starting From those loads and index it by their destinations
+			//For Others: Just Try Appending and forming:
+			for(ChainData cd:insNow.myChainDefinition)
 			{
-				System.out.println("Actives: "+s+" =  "+activeLoadStoreChains.get(s));
+				switch(cd.ins_name)
+				{
+					case "ld":
+						{
+						InsTypeChain insAtLoad = new InsTypeChain(cd);
+						bloatedInstructions++;
+						tracked.add(insAtLoad);
+						HashSet<InsTypeChain> mySources = activeLoadStoreChains.get(cd.operandName);
+						for(String myOuts:cd.inouts.get(1))
+						{
+							HashSet<InsTypeChain> myDest = activeLoadStoreChains.get(myOuts);
+							if(myDest == null)
+							{
+								myDest = new HashSet<>();
+								activeLoadStoreChains.put(myOuts, myDest);
+							}
+						}
+						for(String myOuts:cd.inouts.get(1))
+						{
+							HashSet<InsTypeChain> myDest = activeLoadStoreChains.get(myOuts);
+							if(myDest.equals(mySources))
+							{
+								for(InsTypeChain myInput:mySources)
+								{
+									myInput.addToChain(cd);
+									bloatedInstructions++;
+								}
+								myDest.add(insAtLoad);
+							}
+							else
+							{
+								myDest.clear();
+								myDest.add(insAtLoad);
+								if(mySources != null)
+								{
+									for(InsTypeChain myInput:mySources)
+									{
+										InsTypeChain copy = myInput.getACopy();
+										copy.addToChain(cd);
+										bloatedInstructions++;
+										myDest.add(copy);
+									}
+								}
+							}
+							//Now Do Some SPRUCING:SRPUCE//search-web-meta-tags
+							//DELETE THE BIGGEST SET OF CHAINS!!!
+							//TODO: Find whether this is necessary or not!
+							while(myDest.size() > THRESHOLD_1000 * 0.9)
+							{
+								InsTypeChain deleter = myDest.iterator().next();
+								for(InsTypeChain iter:myDest)
+								{
+									if(iter.size() > deleter.size())
+									{
+										deleter = iter;
+									}
+								}
+								myDest.remove(deleter);
+							}
+						}
+						break;
+						}
+					case "st":
+						{
+						//idealize idealize idealize
+						HashSet<InsTypeChain> mySources = activeLoadStoreChains.get(cd.operandName);
+						if(mySources != null)
+						{
+							for(String myOuts:cd.inouts.get(1))
+							{
+								HashSet<InsTypeChain> myDest = activeLoadStoreChains.get(myOuts);
+								if(myDest == null)
+								{
+									myDest = new HashSet<>();
+									activeLoadStoreChains.put(myOuts, myDest);
+								}
+							}
+							for(String myOuts:cd.inouts.get(1))
+							{
+								HashSet<InsTypeChain> myDest = activeLoadStoreChains.get(myOuts);
+								for(InsTypeChain myInNow: mySources)
+								{
+									if(myDest.equals(mySources))
+									{
+										myInNow.addToChain(cd);
+										bloatedInstructions++;
+										idealize(myInNow);
+									}
+									else
+									{
+										InsTypeChain copy = myInNow.getACopy();
+										copy.addToChain(cd);
+										bloatedInstructions++;
+										idealize(copy);
+										myDest.add(copy);
+									}
+								}
+								long freeMem = Runtime.getRuntime().freeMemory();
+								double memPerc = (freeMem*1.0/maxMem);
+//								System.out.println("memstats: "+memPerc+" "+freeMem+" "+maxMem);
+								if(memPerc < 0.1)
+								{
+//									System.out.println("< 10%");
+									toString();
+								}
+								else
+								{
+									//Now Do Some SPRUCING: ALL SPRUCINGs are taken care off?
+									//DELETE THE BIGGEST SET OF CHAINS!!!
+									//TODO: Find whether this is necessary or not!
+									while(myDest.size() > THRESHOLD_1000 * 0.9)
+									{
+										InsTypeChain deleter = myDest.iterator().next();
+										for(InsTypeChain iter:myDest)
+										{
+											if(iter.size() > deleter.size())
+											{
+												deleter = iter;
+											}
+										}
+										myDest.remove(deleter);
+									}
+								}
+							}
+						}
+						break;
+						}
+					default:
+						{
+						HashSet<InsTypeChain> mySources = activeLoadStoreChains.get(cd.operandName);
+						if(mySources != null)
+						{
+							for(String myOuts:cd.inouts.get(1))
+							{
+								HashSet<InsTypeChain> myDest = activeLoadStoreChains.get(myOuts);
+								if(myDest == null)
+								{
+									myDest = new HashSet<>();
+									activeLoadStoreChains.put(myOuts, myDest);
+								}
+							}
+							for(String myOuts:cd.inouts.get(1))
+							{
+								HashSet<InsTypeChain> myDest = activeLoadStoreChains.get(myOuts);
+								for(InsTypeChain myInNow: mySources)
+								{
+									if(myDest.equals(mySources))
+									{
+										myInNow.addToChain(cd);
+										bloatedInstructions++;
+									}
+									else
+									{
+										InsTypeChain copy = myInNow.getACopy();
+										copy.addToChain(cd);
+										bloatedInstructions++;
+										myDest.add(copy);
+									}
+								}
+								//Now Do Some SPRUCING:
+								//DELETE THE BIGGEST SET OF CHAINS!!!
+								//TODO: Find whether this is necessary or not!
+								//ANSWER: OBVIOUSLY IMPORTANT TO CLEAN THINGS UP :D
+								while(myDest.size() > THRESHOLD_1000 * 0.9)
+								{
+									InsTypeChain deleter = myDest.iterator().next();
+									for(InsTypeChain iter:myDest)
+									{
+										if(iter.size() > deleter.size())
+										{
+											deleter = iter;
+										}
+									}
+									myDest.remove(deleter);
+								}
+							}
+						}
+						break;
+					}
+				}
 			}
 		}
-		if(bb_count_stat % THRESHOLD_1000 == 0)
-		{
-			if(bb_count_stat % THRESHOLD_1000*10 == 0)
-			{
-				System.out.println("completed bb number: "+bb_count_stat+" "+strand_stat+" "+coprocChain);
-			}
-			if(bb_count_stat >= THRESHOLD_1000*4)
-			{
-				//System.out.println(this.toString());
-				toString();
-				this.clearAll();
-			}
-		}
-//		System.out.println(bb.myStrands+"<<<< bb.myStrands :{");
+	//	System.out.println("bb completed!");
 	}
 	volatile HashSet<String> printableHasher = new HashSet<String>();
 	public String translateKey(InsTypeChain ins)
@@ -338,19 +348,26 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		{
 			System.out.println(ins);
 		}
-		if(ins.size() == 0)return;
-		if(!ins.isIdeal())return;
-		if(!tracked.canGo(ins.getSubString()))
+		if(ins.size() == 0)
 		{
-			//System.out.println("tracked says no!"+ins);
+//			System.out.println("size = 0: "+ins);
 			return;
 		}
-		if(ins.size() > THRESHOLD_1000)return;
-		//if(notAlreadyPrinted(ins))
-		//{
-		//	System.out.println(ins+","+ins.getStartingPC()+" 1");
-		//}
-		//if(1==1)return;
+		if(!ins.isIdeal())
+		{
+//			System.out.println("not ideal: "+ins);
+			return;
+		}
+		if(!tracked.canGo(ins.getSubString()))
+		{
+//			System.out.println("tracked says no!"+ins);
+			return;
+		}
+		if(ins.size() > THRESHOLD_1000)
+		{
+			System.out.println("size =  "+ins.size());
+			return;
+		}
 		idealize_counter++;
 		String keyTranslated = translateKey(ins);
 		HashMap<String, Integer> iCount = completedLoadStoreChains.get(ins.toString());
@@ -364,288 +381,45 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 			}
 		}
 //		else
-//		{
-//			InsTypeChain prev = insChainToKey.get(ins.toString());
-//			if(prev != null)
-//			{
-//				//System.out.println(ins.lineNumberOccurrence+" "+iCount);
-//				ins.lineNumberOccurrence.addAll(prev.lineNumberOccurrence);
-//				System.out.println(prev.lineNumberOccurrence+" "+ins.lineNumberOccurrence+" "+(iCount+1));
-//			}
-//			else //if(prev == null)
-//			{
-//				System.out.println("inschain to key is not good!");
-//				System.exit(0);
-//			}
-//		}
+		{
+//			System.out.println(iCount+"<<<<<<<<<< is not null!!!");
+		}
 		Integer intCount = iCount.get(ins.getStartingPC());
 		if(intCount == null)
 		{
 			intCount = 0;
 		}
 		intCount += 1;
+//		System.out.println("intCount became = "+intCount);
 		if(max_count < intCount)
 		{
 			max_count = intCount;
 		}
 		if(max_count == intCount)
 		{
-			//System.out.println(iCount+" = "+ins);
+//			System.out.println(iCount+" = "+ins);
 		}
-		//if(ins.toString().startsWith(GetSrcDest.toCheckString))
-		//{
-		//	//System.out.println(ins.isCoprocBasedChain+" "+ins.myChainDefinition.get(0).verbose()+" "+this.tid+" "+ins.myChainDefinition.get(ins.myChainDefinition.size()-1).verbose());
-		//	System.out.println("***"+tid);
-		//	ins.verbosePrint();
-		//	System.exit(0);
-		//}
-		//if(1==1)return;
-		if(idealize_counter % 500 == 0)
+//		if(idealize_counter % 500 == 0)
 		{
-			//System.out.println(completedLoadStoreChains.size());
+//			System.out.println(completedLoadStoreChains.size());
 		}
-		//int i = 1;
-		//if(completedLoadStoreChains.size() > 1500)
-//REMOVE THIS COMMENT TO REMOVE SOME INS CHAINS FROM POLLUTIONS
-		//for(int i = 1; i <= 150 && completedLoadStoreChains.size() > 1500; i++)
-		//{
-		//	//int max = 1000000;
-		//	//String key = "";
-		//	//for(String s: completedLoadStoreChains.keySet())
-		//	//{
-		//	//	if(completedLoadStoreChains.get(s) < max)
-		//	//	{
-		//	//		max = completedLoadStoreChains.get(s);
-		//	//		key = s;
-		//	//	}
-		//	//}
-		//	//completedLoadStoreChains.remove(key);
-		//	if(completedLoadStoreChains.containsValue(i))
-		//	{
-		////		for(Map.Entry<String, Integer> ent: completedLoadStoreChains.entrySet())
-		////		{
-		////			if(ent.getValue() == i)
-		////			{
-		////				insChainToKey.remove(ent.getKey());
-		////			}
-		////		}
-		//		while(completedLoadStoreChains.values().remove(i)){
-		//		}
-		//	}
-		//}
-		//////////////////////////////////////////////////////////////////////////////////////////////////////////////REMOVE TILL HERE
 		iCount.put(ins.getStartingPC(), intCount);
-		//completedLoadStoreChains.put(ins.toString(), iCount);
 		int iCountSum = 0;
-//		int size = ins.size();
 		for(String s:iCount.keySet())
 		{
 			iCountSum += iCount.get(s);
 		}
 		if(iCountSum == THRESHOLD+1)
 		{
-			//System.out.println(ins.toString()+"\t"+THRESHOLD);
-			for(String s: iCount.keySet())
-			{
-				System.out.println(ins.toString()+"\t"+iCount.get(s)+"\n"+s+" haiboinst");
-			}
-//			ins.verbosePrint();
-			//PRAS: REMOVE THIS::::
-			//Since icount already holds threshold, clear both icount and completed loadstore chains..
+			//PRAS: THIS WAS A USEFUL THING EARLIER. NOW, not required??
+			//TODO: CHECK THIS
+//			for(String s: iCount.keySet())
+//			{
+//				System.out.println(ins.toString()+"\t"+iCount.get(s)+"\n"+s+" haiboinst");
+//			}
 			completedLoadStoreChains.remove(keyTranslated);
 			completedLoadStoreChains.put(ins.toString(), iCount);
-			//ins.verbosePrint();
 		}
-//		HashSet<String> hsNow = completedLoadStoreBBPCs.get(ins.toString());
-//		if(hsNow == null)
-//		{
-//			hsNow = new HashSet<String>();
-//		}
-//		hsNow.add(ins.myChainDefinition.get(0).pc);
-//		completedLoadStoreBBPCs.put(ins.toString(), hsNow);
-//		//if(iCount > 50)
-//		{
-//	//		insChainToKey.put(ins.toString(), ins);
-//		}
-	}
-	public void pickAllLoads(InsTypeChain ins, HashSet<InsTypeChain> current)
-	{
-		HashSet<InsTypeChain> removes = new HashSet<>();
-		while(ins != null)
-		{
-			ins = ins.copyFromLoad();
-			if(ins == null || ins.size() == 0) break;
-			current.add(ins);
-			idealize(ins);
-			ins.myChainDefinition.remove(0);
-			if(current.size() > THRESHOLD_1000)
-			{
-				InsTypeChain toRemove = current.iterator().next();
-				for(InsTypeChain insT:current)
-				{
-					if(insT.size() > toRemove.size())
-					{
-						toRemove = insT;
-					}
-				}
-				current.remove(toRemove);
-			}
-		}
-	}
-	public void addTillStore(InsTypeChain ins, HashSet<InsTypeChain> current)
-	{
-		InsTypeChain tillStore = null;
-		HashSet<InsTypeChain> removes = new HashSet<>();
-		do
-		{
-
-			tillStore = ins.copyTillStore(tillStore);
-			if(tillStore.size() == 0) return;
-			ChainData store = tillStore.getDestinationNode();
-			if(store.ins_name.toLowerCase().contains("st"))
-			{
-//				for(String storeDests:store.inouts.get(1))
-//				{
-//					HashSet<InsTypeChain> current = completedLoadStoreChains.get(storeDests);
-//					if(current == null)
-//					{
-//						//it will get taken care of at pick all loads
-//						continue;
-////						current = new HashSet<>();
-////						completedLoadStoreChains.put(storeDests, current);
-//					}
-					for(InsTypeChain ins1:current)
-					{
-						InsTypeChain nu = ins1.getACopy();
-						nu.addToChain(tillStore);
-						idealize(nu);
-						if(nu.size() > THRESHOLD_1000)
-						{
-							removes.add(ins1);
-						}
-					}
-//				}
-			}
-			for(String storeDests:store.inouts.get(1))
-			{
-				HashSet<InsTypeChain> current_myout = activeLoadStoreChains.get(storeDests);
-				if(current_myout == null)
-				{
-					//it will get taken care of at pick all loads
-					continue;
-				}
-		//		removes = new HashSet<>();
-				for(InsTypeChain ins1:current)
-				{
-					if(current == current_myout)
-					{
-						if(ins1.size() + tillStore.size() < THRESHOLD_1000)
-						{
-							ins1.addToChain(tillStore);
-							idealize(ins1);
-						}
-					}
-					else
-					{
-						if(ins1.size() + tillStore.size() < THRESHOLD_1000)
-						{
-							InsTypeChain nu = ins1.getACopy();
-							nu.addToChain(tillStore);
-							if(nu.size() > 0)
-							{
-								idealize(nu);
-								current_myout.add(nu);
-							}
-						}
-					}
-				}
-			}
-			if(tillStore.size() == ins.size())
-			{
-				tillStore = null;
-			}
-		}while(tillStore != null);
-		for(InsTypeChain insk:removes)
-		{
-			current.remove(insk);
-		}
-		while(current.size() > THRESHOLD_1000*.9)
-		{
-			InsTypeChain toRemove = null;//current.iterator().next();
-			int size = 0;//toRemove.size(); 
-			for(InsTypeChain inso :current)
-			{
-				int siz = inso.size();
-				if(siz > size)
-				{
-					toRemove = inso;
-				}
-			}
-			//System.out.print("removing?"+size+" "+current.size()+" "+toRemove+" ");
-			current.remove(toRemove);
-			//System.out.println(" "+current.size());
-		}
-	}
-//	public void saveNew(InsTypeChain ins)
-//	{
-//		if(!ins.getSourceNode().ins_name.toLowerCase().contains("ld")||!ins.getSourceNode().ins_name.toLowerCase().contains("pop"))
-//		{
-//			return;//System.out.println(ins);
-//		}
-//		InsTypeChain current = destinationStrandMap.get(ins.getDestination());
-//		if(current != null)
-//		{
-//			collectStatsFrom(current);
-//		}
-//		current = ins.getACopy();
-//		//current.add(ins);
-//		destinationStrandMap.put(ins.getDestination(), current);
-//	}
-	HashSet<String> homoInsChains = new HashSet<>();//J
-	public void collectStatsFrom(InsTypeChain prev)
-	{
-		Integer i = prevMaintains.get(prev.toString());
-		if(i == null)
-		{
-			i = 0;
-		}
-		i = i+1;
-		prevRawChains.add(prev);
-		if(longestStrand == null || longestStrand.size() < prev.size())
-		{
-			longestStrand = prev;
-		}
-//		String prev_s = "";
-//		boolean homoIns = true;//r
-//		for(ChainData cd:prev.myChainDefinition)
-//		{
-//			String now = cd.toString();
-//			if(prev_s.equals(now))
-//			{
-//				Integer it_p = homoChains.get(prev_s);
-//				if(it_p == null)
-//				{
-//					it_p = 0;
-//				}
-//				it_p += 1;
-//				homoChains.put(prev_s, it_p);
-//			}
-//			else
-//			{
-//				if(!prev_s.equals(""))
-//				{
-//					homoIns = false;
-//				}
-//			}
-//			prev_s = now;
-//		}
-//		if(homoIns)
-//		{
-//			homoInsChains.add(prev.toString());
-//			//System.out.println(prev);
-//		}
-		totalDependenceEdges += (prev.size() - 1);
-		prevMaintains.put(prev.toString(), i);
 	}
 	public void clearAll()
 	{
@@ -659,32 +433,35 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 	}
 	public String toString()
 	{
-//		System.out.println(completedLoadStoreChains);
 		boolean flag = true;
 
 		List<Map.Entry<String, HashMap<String, Integer>>> list = new LinkedList<>( completedLoadStoreChains.entrySet() );
-		Collections.sort( list, new Comparator<Map.Entry<String, HashMap<String, Integer>>>()
+		if(1!=1)//SORTING OF 5000 odd elements is time consuming...
 		{
-			@Override
-			public int compare( Map.Entry<String, HashMap<String, Integer>> o1, Map.Entry<String, HashMap<String, Integer>> o2 )
+			Collections.sort( list, new Comparator<Map.Entry<String, HashMap<String, Integer>>>()
 			{
-				HashMap<String, Integer> o1_tL = o1.getValue();
-				HashMap<String, Integer> o2_tL = o2.getValue();
-				int i1 = 0, i2 = 0;
-				for(String s:o1_tL.keySet())
+				@Override
+				public int compare( Map.Entry<String, HashMap<String, Integer>> o1, Map.Entry<String, HashMap<String, Integer>> o2 )
 				{
-					i1 += o1_tL.get(s);
+					HashMap<String, Integer> o1_tL = o1.getValue();
+					HashMap<String, Integer> o2_tL = o2.getValue();
+					int i1 = 0, i2 = 0;
+					for(String s:o1_tL.keySet())
+					{
+						i1 += o1_tL.get(s);
+					}
+					for(String s:o2_tL.keySet())
+					{
+						i2 += o2_tL.get(s);
+					}
+					return (i2-i1);
+					//return -1*((o1_tL).compareTo(o2_tL));
+					//return -1*((o1.getValue()).compareTo( o2.getValue() ));
 				}
-				for(String s:o2_tL.keySet())
-				{
-					i2 += o2_tL.get(s);
-				}
-				return (i2-i1);
-				//return -1*((o1_tL).compareTo(o2_tL));
-				//return -1*((o1.getValue()).compareTo( o2.getValue() ));
-			}
-		} );
+			} );
+		}
 		int topHalfCounter = 0;
+		HashMap<String, Integer> toDelete = new HashMap<>();
 		for(Map.Entry<String, HashMap<String, Integer>> ent: list)
 		{
 			topHalfCounter ++;
@@ -701,43 +478,29 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 			{
 				if(flag)
 				{
-					System.out.println("top strands: (total = "+completedLoadStoreChains.size()+"):"+instructions);
+					System.out.println("top strands: (total = "+completedLoadStoreChains.size()+","+bloatedInstructions+"):"+instructions);
 					flag = false;
 				}
-				//for(String s:hmap.keySet())
-				//{
-				//	System.out.println(ent.getKey()+","+s+","+tid+""+"\t"+hmap.get(s));
-				//}
+				for(String s:hmap.keySet())
+				{
+					System.out.println(ent.getKey()+","+s+","+tid+""+"\t"+hmap.get(s));
+				}
 				myFinalStrands.put(ent.getKey(), total);//ent.getValue()+","+LightStrander.tidStringTracker.get(tid+"")+","+tid+""+"\t"+ent.getValue());
 				//insChainToKey.get(ent.getKey()).verbosePrint();
 			}
 			else
 			{
 				//mark for deleting?
+				toDelete.put(ent.getKey(), total);
 			}
 		}
-		boolean deleter = false;
-		do
+		System.out.println("Going to delete");
+		for(String s:toDelete.keySet())
 		{
-			deleter = false;
-			for(String s:completedLoadStoreChains.keySet())
-			{
-				HashMap<String, Integer> hmap = completedLoadStoreChains.get(s);
-				int total = 0;
-				for(String ss_s:hmap.keySet())
-				{
-					total += hmap.get(ss_s);
-				}
-				if(total <= THRESHOLD)
-				{
-					completedLoadStoreChains.remove(s);
-					//insChainToKey.remove(s);
-					deleter = true;
-					break;
-				}
-			}
-		}while(deleter);
-		return ""+flag;//"*****************"+tid;//strb.toString();
+			completedLoadStoreChains.remove(s);
+		}
+		System.out.println("Deleting is slow!"+completedLoadStoreChains.size());
+		return ""+flag;
 	}
 	public String toStringOld()
 	{
