@@ -1,226 +1,318 @@
 package main.java;
-import java.util.zip.*;
-import java.net.*;
+
 import java.io.*;
-import java.sql.*;
 import java.util.*;
-//class Addresses implements Comparable<String>
-//{
-//	String addresses[] = null;
-//	public Addresses(String add)
-//	{
-//		this.addresses = add.split(",");
-//	}
-//	public int compareTo(String s)
-//	{
-//	}
-//}
-public class LoadStoreCatch 
+import org.apache.spark.*;
+import org.apache.spark.api.java.*;
+import org.apache.spark.api.java.function.*;
+
+public class LightStrander
 {
-	public static void main(String args[])throws Exception
+	static boolean insDecodeDebug = false;
+	static long linesRead = 0L;
+	static long totalInstructions = 0L;
+	static String toCheckString = "";
+	static Hashtable<String, String> tidStringTracker = new Hashtable();
+
+	public static void main1(String[] args)	throws Exception
 	{
-		if(args == null)
-		{
-			args = new String[]{"first_app.txt", "1"};
+		if (args == null) {
+			args = new String[] { "google_ins_dump_bbs.gz", "1", "" };
 		}
-		HashSet<Long> correctedBasicBlockFlows = new HashSet<>();
-		HashMap<Long, BasicBlock> basicBlocksFormed = new HashMap<>();
-		TreeMap<Long, BasicBlock> programFlow = new TreeMap<>();
-		TreeMap<Long, String> addressSequence = new TreeMap<Long, String>();
+		String path = "/i3c/hpcl/huz123/spark/java_example_pras/data_proc/";
+		System.out.println(args[2]);
 		String line = "";
-		int found_bb = 0;
-		TreeMap<String, ArrayList<Integer> > aggregateIns = new TreeMap<>();
-		String app_name = "occ"+args[0];
-		if(app_name.length() > 15)
-		{
-			app_name = app_name.substring(0,14);
-		}
-		int total_instructions = 1;
-		TreeMap<String, String> pcSearchKeys = new TreeMap<>();
-		pcSearchKeys.put("40043dc0", "Go");
-		String prefix = "40043d";
-		String []scrutinizer = new String[]{"cc", "d4", "d0", "d8", "e0", "e4"};
-		
-		//System.exit(0);
-		BufferedReader br = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(args[0]))));
-		long linesRead = 0;
-		boolean inside_bb = false;
-		BasicBlock bb_current = null;
-		BasicBlock bb_prev = null;
-		//PrintWriter pw_server_mysql = null;
-		//Socket ss = new Socket("130.203.59.194", 0xdb1);
-		//pw_server_mysql = new PrintWriter(ss.getOutputStream());
-		//pw_server_mysql = new PrintWriter(args[0]+"_sqldump.sql");//new PrintWriter(ss.getOutputStream());
-		//new ListenThread(new BufferedReader(new InputStreamReader(ss.getInputStream()))).start();
-		boolean ignoreMe = true;
-		int printedCount = 0;
-		String beforeEnteringLine = "";
-		while(((line = br.readLine())!=null))
-		{
-			linesRead++;
-			if(linesRead % 1000 == 0)
-			{
-				//System.out.println(linesRead);
-			}
-			//if(linesRead < 66) continue;
-			if(line.trim().length() == 0) continue;
-			//System.out.println(line);
-			if(line.startsWith("before entering:"))
-			{
-				inside_bb = true;
-				beforeEnteringLine = line;
-				//int cut = line.lastIndexOf("fp_status:")+11;
-				//line = line.substring(cut);
-				//beforeEnteringParting = true;
-				continue;
-			}
-			if(!inside_bb)
-			{
-				String split[] = line.split(" ");
-				if(split.length > 3)
-				{
-					boolean isPid = false;
-					try
+		final TrackedStrands trackedStrands = new TrackedStrands(args[2], path+args[0]);
+		final TrackedStrands trackedMemoStrands = new TrackedStrands("memo_data", path+args[0]);
+		SparkConf conf = new SparkConf().setAppName("LightStrander Hero DA!");
+		JavaSparkContext sc = new JavaSparkContext(conf);
+		System.out.println("starting the file read.. with " + sc.defaultMinPartitions() + " partitions");
+//		File f = new File(path+args[0]);
+//		path = path+args[0]+"/";
+//		ArrayList<String> fileSnippets = new ArrayList<String>();
+//		fileSnippets =  new ArrayList<>((List<String>)Arrays.asList(f.list()));
+//		//fileSnippets.add("maps_2_bbs0266");
+		TreeMap<String, HashMap<String, Integer>> myPopularStrands = new TreeMap();
+//		String fileName = "";
+//		int processedFileCount = 0;
+//		while(fileSnippets.size() > 0)// && processedFileCount <= 50)
+//		{
+//			processedFileCount++;
+		//	int i = Math.abs((int)(Math.random() * fileSnippets.size()))%fileSnippets.size();
+		//	fileName = fileSnippets.get(i);
+		//	fileSnippets.remove(fileName);
+			//if(fileName.equals("data_manager") || fileName.equals("memo_data"))continue;
+		//	System.out.println("beginning.. "+fileName);
+			JavaRDD<String> lines_bbs = sc.textFile(path+args[0]+"/*_bbs*").cache();//, 100
+			//ORIG: JavaPairRDD<String, String> lines_bbs = sc.wholeTextFiles(path+args[0]+"/*_bbs*", 600);//.cache();//, 100
+	
+			//JavaRDD<ArrayList<BasicBlock>> bbFlows = lines_bbs.map(new Function<scala.Tuple2<String, String>, ArrayList<BasicBlock>>(){
+			JavaRDD<ArrayList<BasicBlock>> bbFlows = lines_bbs.map(new Function<String, ArrayList<BasicBlock>>(){
+					@Override
+					public ArrayList<BasicBlock> call(String bbFileString)
 					{
-						Integer.parseInt(split[0]);
-						isPid = true;
-					}
-					catch(Exception e)
-					{
-						isPid = false;
-					}
-					if(isPid)
-					{
-						if(split[1].length() == 8 && (split[2].length() == 8 || split[2].length() == 4))
+				//		if(bbFileStrings._1.indexOf("_bbs")==-1)return new ArrayList<>();
+				//		String bbFileString = bbFileStrings._2;
+						//System.out.println(bbFileString);
+						ArrayList<BasicBlock> ret = new ArrayList<>();
+				//		if(!bbFileString.startsWith("before entering"))
+				//		{
+				//			System.out.println(bbFileString);
+				//			return ret;
+				//		}
+						StringTokenizer strTokenizerBB = new StringTokenizer(bbFileString, "\n");
+						while(strTokenizerBB.hasMoreTokens())
 						{
-							inside_bb = true;
-						}
-					}
-					if(!inside_bb)
-					{
-						inside_bb = (line.indexOf(", Lookup: ")!=-1);
-					}
-				}
-			}
-			if(inside_bb)
-			{
-				//System.out.println(line);
-				if(line.indexOf("Lookup:")==-1)
-				{
-					///////////////////////SANITY CHECK
-					if(line.startsWith("@@"))
-					{
-						line = "***end***";
-					}
-					String temp_splitting[] = line.split(" ");
-					if(temp_splitting.length > 2)
-					{
-						if(temp_splitting[1].length() != 8)
-						{
-							line = "***end***";
-						}
-					}	
-					if(line.equals("***end***"))
-					{
-						inside_bb = false;
-						if(!ignoreMe)
-						{
-							//bb_current.fillInsAndOuts();
-							//System.out.println(bb_current.myIdStr+" in out size = "+bb_current.myInFields.size()+" "+bb_current.myOutFields.size()+" \nin:");
-							//System.out.println(bb_current.myInFields);
-							//System.out.println("out:");
-							//System.out.println(bb_current.myOutFields);
-							//System.out.println("out to in map:"+bb_current.my_def_uses+" max: "+bb_current.max_length_in_out_flow);
-							//bb_current.root_in_dependence();
-							//System.out.println("instructions:");
-							//for(String s:bb_current.instructions)
-							//{
-							//	System.out.println(s);
-							//}
-							//for(InsTypeInterface ss:bb_current.myInsType)
-							//{
-							//	String sss = ss.toString();
-							//	ArrayList<Integer> ins = aggregateIns.get(sss);
-							//	if(ins == null)
-							//	{
-							//		ins = new ArrayList<>();
-							//	}
-							//	while(ins.size() <= found_bb)
-							//	{
-							//		ins.add(0);
-							//	}
-							//	Integer now = ins.get(found_bb);
-							//	now = now + 1;
-							//	ins.set(found_bb, now);
-							//	aggregateIns.put(sss, ins);
-							//}
-							//System.out.println(bb_current.myInsType);
-							if(0 == pcSearchKeys.size())
+							String bbString = strTokenizerBB.nextToken();
+							BasicBlock bb = null;
+							if ((bbString.indexOf("null") != -1) && ((bbString.indexOf("Lookup") != -1) || (bbString.indexOf("Lokup") != -1))) {
+								ret.add(new BasicBlock("gap", -1L, bbString));
+//								System.out.println("gap 1");
+								continue;
+							}
+							try
 							{
-								System.exit(0);
+								if (bbString.indexOf("*end*") == -1) {
+									ret.add(new BasicBlock("!gap", -1L, bbString));
+//									System.out.println("gap 2 "+bbString);
+									continue;
+								}
+								StringTokenizer strTok = new StringTokenizer(bbString, "|^|");
+								String lineNumber = "";
+								String line = strTok.nextToken();
+								if ((line.indexOf("Lookup") != -1) || (line.indexOf("Lokup") != -1)) {
+									line = strTok.nextToken();
+								}
+								String prev = "";
+								String[] temp_s = line.split(" ");
+								if(temp_s.length == 1)
+								{
+									ret.add(new BasicBlock("!gap", -1L, bbString));
+//									System.out.println("gap 3");
+									continue;
+								}
+								temp_s[0] = temp_s[0].replaceAll(",", "").trim();
+								try
+								{
+									String pc_string = temp_s[1];
+									long pc = Long.parseLong(pc_string, 16);
+									bb = new BasicBlock(pc, Integer.parseInt(temp_s[0]), line.substring(4));
+									boolean endReached = false;
+									while (strTok.hasMoreTokens())
+									{
+										prev = line;
+										line = strTok.nextToken();
+										if ((line.indexOf("Lookup") == -1) && (line.indexOf("Lokup") == -1)) {
+											if (endReached)
+											{
+												bb.memoryLines.add(line);
+											}
+											else if (line.indexOf(" ") == -1)
+											{
+												if (line.trim().length() != 0)
+												{
+													lineNumber = line;
+													endReached = true;
+												}
+											}
+											else if (line.indexOf("*end*") != -1)
+											{
+												lineNumber = prev;
+												endReached = true;
+											}
+											else
+											{
+												try
+												{
+													bb.instructions.add(line.substring(4));
+//													System.out.println("adding instructions"+line);
+												}
+												catch (Exception e)
+												{
+													e.printStackTrace();
+													System.out.println(line);
+													bb.fillInsAndOuts();
+													bb.printStrands();
+													throw e;
+												}
+												bb.insCount += 1;
+												bb.myIdStr = ("(" + Long.toHexString(bb.startingPC) + "," + bb.insCount + ")");
+											}
+										}
+									}
+								}
+								catch (Exception e)
+								{
+									System.out.println(line);
+									e.printStackTrace();
+									throw e;
+								}
+								try
+								{
+//									System.out.println("filling in and out");
+									bb.fillInsAndOuts();
+//									System.out.println("filled in and out"+bb.myStrands);
+								}
+								catch (Exception e)
+								{
+									e.printStackTrace();
+									throw e;
+								}
+//								System.out.println("before: "+bb.myStrands);
+								bb.emptyIntermediates(trackedStrands);
+//								System.out.println("after"+bb.myStrands);
+								ret.add(bb);
+							}
+							catch (Exception e)
+							{
+								e.printStackTrace();
+								throw e;
 							}
 						}
-						ignoreMe = true;
-						//bb_current.fillAllInputs(memoryMap, pcMap);
-						//bb_current.manageMemory(memoryMap);
-						bb_prev = bb_current;
-						bb_current = null;
-						continue;
+				//		System.out.println(ret.size()+"<< look at that!");
+						return ret;
 					}
-					try
-					{
-						String temp_s[] = line.split(" ");
-						String pc_string = temp_s[1];
-						if(pcSearchKeys.get(pc_string)!=null)
-						{
-							ignoreMe = false;
-							System.out.println(beforeEnteringLine);
-						}
-						long pc = Long.parseLong(pc_string, 16);
-						addressSequence.put(pc, linesRead+":"+line);
-						if(bb_current == null)
-						{
-							bb_current = new BasicBlock(pc, Integer.parseInt(temp_s[0]), line.substring(4));
-							if(!ignoreMe)
-							{
-								programFlow.put(linesRead, bb_current);//new BasicBlock("gap", pc, linesRead+":"+line));
-								basicBlocksFormed.put(pc, bb_current);
-							}
-						}
-						else
-						{
-							if(!ignoreMe)
-							{
-								bb_current.instructions.add(line.substring(4));
-								bb_current.insCount++;
-								bb_current.myIdStr = "("+Long.toHexString(bb_current.startingPC)+","+bb_current.insCount+","+temp_s[0]+")";
-							}
-						}
-						continue;
-					}
-					catch(Exception e)
-					{
-						System.out.println(linesRead+"th line: "+line);
-						e.printStackTrace();
-						System.exit(0);
-					}
-				}
-			}
-			else
+				});
+			lines_bbs = null;
+			System.out.println("done with the bb reads!!");
+	
+			if(!args[2].equals("data_manager"))//PRAS REMOVE THE IF CONDITION
 			{
-				if(line.startsWith("@@") && line.indexOf(prefix)!=-1)// && line.indexOf("inserting")!=-1)
-				{
-					for(String s:scrutinizer)
-					{
-						if(line.indexOf(prefix+s)!=-1)
+				JavaPairRDD<String, Integer> strMaints = bbFlows.mapPartitionsToPair(new PairFlatMapFunction<Iterator<ArrayList<BasicBlock>>, String, Integer>()
 						{
-							System.out.println(line);
-							break;
-						}
-					}
+							@Override
+							public Iterable<scala.Tuple2<String, Integer>> call(Iterator<ArrayList<BasicBlock>> biter)
+							{
+								StrandMaintainer strm = new StrandMaintainer(-1L, trackedStrands);
+								while (biter.hasNext())
+								{
+									//if(strm.bb_count_stat > 4000000)
+									//{
+									//	break;
+									//}
+									ArrayList<BasicBlock> b = (ArrayList<BasicBlock>)biter.next();
+									for(BasicBlock bb:b)
+									{
+										if (!bb.isGap) {
+											strm.addNext(bb, -1L);
+										}
+									}
+								}
+								System.out.println("finished one small: "+strm.instructions+" "+strm.completedLoadStoreChains);
+								strm.toString();
+								ArrayList<scala.Tuple2<String, Integer>> ret = new ArrayList<>();
+								for(String s:strm.myFinalStrands.keySet())
+								{
+									ret.add(new scala.Tuple2<String, Integer>(s, strm.myFinalStrands.get(s)));
+								}
+								return ret;//strm.myFinalStrands;
+							}
+						}).reduceByKey(new Function2<Integer, Integer, Integer>(){
+							@Override
+							public Integer call(Integer a, Integer b)
+							{
+								return a+b;
+							}
+							});
+				int top_10 = 100;
+				if(1==1)//PRAS: REMOVE THIS
+				{
+					//TreeMap<String, HashMap<String, Integer>> myPopularStrands = new TreeMap();
+					//Iterator<scala.Tuple2<String, Integer>> iterS = strMaints.treeAggregate(new TreeMap<String, HashMap<String, Integer>>(), );//toLocalIterator();
+					myPopularStrands = strMaints.treeAggregate(new TreeMap<String, HashMap<String, Integer>>(), 
+							new Function2<TreeMap<String, HashMap<String, Integer>>, scala.Tuple2<String, Integer>, TreeMap<String, HashMap<String, Integer>>>(){
+								@Override
+								public TreeMap<String, HashMap<String, Integer>> call(TreeMap<String, HashMap<String, Integer>> rt, scala.Tuple2<String, Integer> s)
+								{
+									HashMap<String, Integer> hmap = rt.get(s._1);
+									if(hmap == null)
+									{
+										hmap = new HashMap<String, Integer>();
+										rt.put(s._1, hmap);
+									}
+									Integer ofreq = hmap.get("oFreq");
+									if(ofreq == null)
+									{
+										ofreq = 0;
+									}
+									ofreq += s._2;
+									hmap.put("oFreq", ofreq);
+									return rt;
+								}
+							}, new Function2<TreeMap<String, HashMap<String, Integer>>,TreeMap<String, HashMap<String, Integer>>,TreeMap<String, HashMap<String, Integer>>>(){
+								@Override
+								public TreeMap<String, HashMap<String, Integer>> call(TreeMap<String, HashMap<String, Integer>> a,TreeMap<String, HashMap<String, Integer>> b)
+								{
+									TreeMap<String, HashMap<String, Integer>> c = new TreeMap<String, HashMap<String, Integer>>();
+									c.putAll(a);
+									c.putAll(b);
+									return c;
+								}
+							}, 10);//toLocalIterator();
+//					while (iterS.hasNext())
+//					{
+//						scala.Tuple2<String, Integer> s = iterS.next();
+//						HashMap<String, Integer> hmap = new HashMap<>();
+//						hmap.put("oFreq", s._2);
+//						myPopularStrands.put(s._1, hmap);
+//						System.out.println(s._1+" "+s._2);
+//					//	top_10 --;
+//					//	if(top_10 < 0)break;
+//					}
 				}
+				//strMaints.clearAll();
+				strMaints = null;
+			}//PRAS: remove these
+			if(args[2].equals("data_manager"))
+			{
+				System.out.println("starting data processing......................................");
+				StrandDataBased dataKeeper = new StrandDataBased(myPopularStrands, trackedMemoStrands);
+				StrandDataBased dataSpew = (StrandDataBased)bbFlows.treeAggregate(dataKeeper, new Function2<StrandDataBased, ArrayList<BasicBlock>, StrandDataBased>()
+					{
+						@Override
+						public StrandDataBased call(StrandDataBased l, ArrayList<BasicBlock> b)
+						{
+							for(BasicBlock bb:b)
+							{
+								if (bb.isGap) {
+									continue;//return l;
+								}
+								l.addNext(bb);
+								bb.emptyIntermediates(trackedMemoStrands);
+							}
+							return l;
+						}}, 
+						new Function2<StrandDataBased, StrandDataBased, StrandDataBased>(){
+							@Override
+							public StrandDataBased call(StrandDataBased a, StrandDataBased b)
+							{
+							//	b.toString();
+								b.fixUpTopStrandsForGood();
+								//for (String s : b.topStrands.keySet())
+								//{
+								//	System.out.println(s + ":");
+								//	System.out.println(b.topStrands.get(s));
+								//}
+								b.topStrands.clear();
+								a.addAllChains(b);
+								b.clearAll();
+								return a;
+							}
+						});
+				System.out.println("***********************");
+				//System.out.println(dataSpew.dataSoFar);//myPopularStrands);
+				//System.out.println(dataSpew.topStrands);
+				//TRIM mypopularstrands...
+				dataSpew.fixUpTopStrandsForGood();
+				myPopularStrands.clear();
+				System.out.println("***********************");
+				dataSpew.clearAll();
+				dataKeeper.clearAll();
+				dataSpew = null;
+				dataKeeper = null;
+				//myPopularStrands = null;
 			}
-		}
-		br.close();
+		//}
+
 	}
 }

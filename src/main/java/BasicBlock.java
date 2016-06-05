@@ -1215,7 +1215,7 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 	//		System.out.println(alist+" became "+retList);
 	//	}
 		////////////////////LAST LINE OF DEFENCE! PUT ALL OPERANDS FROM THE MNEMONICS
-		String ins_mod[] = ins.replaceAll("\\[", "").replaceAll("\\]", "").replaceAll("\\}", "").replaceAll("\\{", "").split(",");
+		String ins_mod[] = ins.replaceAll("\\[", "").replaceAll("\\]", "").replaceAll("\\}", "").replaceAll("\\{", "").replace("!", "").split(",");
 		for(String s:ins_mod)
 		{
 			String orig = s;
@@ -1224,14 +1224,30 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 			boolean num = false;
 			try
 			{
-				Integer.parseInt(s);
+				Integer.parseInt(s.trim());
 				num = true;
 			}
 			catch(Exception e)
 			{
 				num = false;
 			}
-			if(s.startsWith("#") || retList.toString().indexOf(s) != -1 || s.startsWith("0x") || num)continue;
+			if(s.startsWith("#") || retList.toString().indexOf(s) != -1 || s.startsWith("(0x") || s.startsWith("0x") || num)continue;
+			//-68, 112, d9, -60, d8, d5, d4, d7, d6, d25, d0, d24, d1, d23, d2, d22, d3, d21, d20, 40, 80, d29, sy, d28, d27, d26, fp, sl, -54, cr0, sp, CPSR_c, -52, 24, 3, d12, 2, d11, d14, d13, 0, 7, 6, d10, 32, pc, 4, d19, 9, r0, clrex, 8, r1, d16, d15, d18, d17, -84, lr, 18, r15, r14, 16, -44, 12, 106, 48, 96, -76, ip, d30, -36, 10, d31, 184, r6, r7, r8, r9, r2, r3, 88, r4, r5
+			//TODO: s.indexOf("sy")!=-1: SY stands for system wide barrier for ISB instruction. Though it is not technically an operand, i am leaving it here to examine later
+			//if(s.indexOf("-68")!=-1 || s.indexOf("112")!=-1 || s.indexOf("-60")!=-1 || s.indexOf("40")!=-1 || s.indexOf("80")!=-1 || s.indexOf("-54")!=-1)
+			//{
+			//	System.out.println(s+" === "+ins);
+			//	System.exit(0);
+			//}
+			//try
+			//{
+			//	System.out.println("s = "+Integer.parseInt(s.trim()));
+			//	System.out.println(ins);
+			//	System.exit(0);
+			//}
+			//catch(Exception e)
+			//{
+			//}
 			if(orig.equals(ins_mod[0]))
 			{
 //				System.out.println("changing"+s);
@@ -1255,6 +1271,22 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 			}
 		}
 		alist.clear();
+		for(ArrayList<String> io:retList)
+		{
+			ArrayList<String> remo = new ArrayList<>();
+			for(String s:io)
+			{
+				try
+				{
+					Integer.parseInt(s.trim());
+					remo.add(s);
+				}
+				catch(Exception e)
+				{
+				}
+			}
+			io.removeAll(remo);
+		}
 		alist.addAll(retList);
 		return exitCondition;
 	}

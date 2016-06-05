@@ -3,9 +3,9 @@ import java.util.*;
 import java.io.*;
 public class StrandMaintainer implements Serializable//<StrandMaintainer>
 {
-	public static final int THRESHOLD = 200;
-	public static final int THRESHOLD_1000 = 1000;
-	public static final byte THRESHOLD_PERC = 1;
+	public int THRESHOLD = 20;//THE TOP HALF COUNTER WILL TAKE CARE OF THE LIMITATIONS
+	public static final int THRESHOLD_1000 = 250;
+	public static final byte THRESHOLD_PERC = 5;
 	//public static final boolean PRINT_ALL_STRANDS = true;
 	public static final boolean PRINT_ALL_STRANDS = false;
 	//ORIGINAL PRAS: public static final byte THRESHOLD = 20;
@@ -19,6 +19,8 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 	int totalDependenceEdges = 0;
 	long tid = -1;
 	TreeMap<String, Integer> myFinalStrands;
+	/**BloatedInstructions count the number of dependence edges + [single noded graph] in the dependence graphs
+	 * */
 	int instructions = 0, bloatedInstructions = 0;
 	long maxMem = Runtime.getRuntime().maxMemory();
 	private void readObject(ObjectInputStream in)throws IOException, ClassNotFoundException
@@ -90,6 +92,35 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 			}
 		}
 	}
+	public void clearMore()
+	{
+		System.out.println(completedLoadStoreChains.size()+" "+findSizeOf()+" "+activeLoadStoreChains.keySet());
+		if(1==1)return;	
+		int chain = 0;
+		int max = 0;
+		int count = 0;
+		int iterMax = 0;
+		for(String s:activeLoadStoreChains.keySet())
+		{
+			int iter = 0;
+			HashSet<InsTypeChain> ins = activeLoadStoreChains.get(s);
+			for(InsTypeChain inss:ins)
+			{
+				iter++;
+				chain += inss.size();
+				count++;
+				if(max < inss.size())
+				{
+					max = inss.size();
+				}
+			}
+			if(iterMax < iter)
+			{
+				iterMax = iter;
+			}
+		}
+		//:return "totalChainData = "+chain+", MaxChainLen = "+max+" TotalChains = "+count+" MaxChainsForKey = "+iterMax;
+	}
 	public String findSizeOf()
 	{
 		int chain = 0;
@@ -123,7 +154,6 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		instructions += bb.insCount;
 		bb_count_stat++;
 
-		ArrayList<InsTypeChain> tracked = new ArrayList<>();
 		for(InsTypeChain insNow:bb.myStrands)
 		{
 			strand_stat++;
@@ -135,13 +165,19 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 			//For Others: Just Try Appending and forming:
 			for(ChainData cd:insNow.myChainDefinition)
 			{
+
+				String sTt = cd.operandName;
+				if(sTt.indexOf("-68")!=-1 || sTt.indexOf("112")!=-1 || sTt.indexOf("-60")!=-1 || sTt.indexOf("40")!=-1 || sTt.indexOf("80")!=-1 || sTt.indexOf("-54")!=-1)
+				{
+					System.out.println(cd.comments+" +++===== "+sTt+" "+cd.operandName+" "+cd.inouts);
+					System.exit(0);
+				}
 				switch(cd.ins_name)
 				{
 					case "ld":
 						{
 						InsTypeChain insAtLoad = new InsTypeChain(cd);
 						bloatedInstructions++;
-						tracked.add(insAtLoad);
 						HashSet<InsTypeChain> mySources = activeLoadStoreChains.get(cd.operandName);
 						for(String myOuts:cd.inouts.get(1))
 						{
@@ -150,6 +186,13 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 							{
 								myDest = new HashSet<>();
 								activeLoadStoreChains.put(myOuts, myDest);
+								try
+								{
+									Integer.parseInt(myOuts);
+									System.out.println(cd.comments+" ===== "+myOuts+" "+cd.operandName+" "+cd.inouts);
+					System.exit(0);
+								}
+								catch(Exception e){}
 							}
 						}
 						for(String myOuts:cd.inouts.get(1))
@@ -179,7 +222,7 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 									}
 								}
 							}
-							//Now Do Some SPRUCING:SRPUCE//search-web-meta-tags
+							//Now Do Some SPRUCING:SPRUCE//search-web-meta-tags
 							//DELETE THE BIGGEST SET OF CHAINS!!!
 							//TODO: Find whether this is necessary or not!
 							while(myDest.size() > THRESHOLD_1000 * 0.9)
@@ -187,7 +230,7 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 								InsTypeChain deleter = myDest.iterator().next();
 								for(InsTypeChain iter:myDest)
 								{
-									if(iter.size() > deleter.size())
+									if(iter.bloatFactor > deleter.bloatFactor)
 									{
 										deleter = iter;
 									}
@@ -239,9 +282,10 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 								{
 //									System.out.println("< 10%");
 									toString();
+									clearMore();
+									THRESHOLD += 20;
+									System.out.println("THRESHOLD too low:"+THRESHOLD);
 								}
-								else
-								{
 									//Now Do Some SPRUCING: ALL SPRUCINGs are taken care off?
 									//DELETE THE BIGGEST SET OF CHAINS!!!
 									//TODO: Find whether this is necessary or not!
@@ -250,14 +294,13 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 										InsTypeChain deleter = myDest.iterator().next();
 										for(InsTypeChain iter:myDest)
 										{
-											if(iter.size() > deleter.size())
+											if(iter.bloatFactor > deleter.bloatFactor)
 											{
 												deleter = iter;
 											}
 										}
 										myDest.remove(deleter);
 									}
-								}
 							}
 						}
 						break;
@@ -294,7 +337,7 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 										myDest.add(copy);
 									}
 								}
-								//Now Do Some SPRUCING:
+								//Now Do Some SPRUCING:spruce
 								//DELETE THE BIGGEST SET OF CHAINS!!!
 								//TODO: Find whether this is necessary or not!
 								//ANSWER: OBVIOUSLY IMPORTANT TO CLEAN THINGS UP :D
@@ -303,7 +346,7 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 									InsTypeChain deleter = myDest.iterator().next();
 									for(InsTypeChain iter:myDest)
 									{
-										if(iter.size() > deleter.size())
+										if(iter.bloatFactor > deleter.bloatFactor)
 										{
 											deleter = iter;
 										}
@@ -436,7 +479,7 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		boolean flag = true;
 
 		List<Map.Entry<String, HashMap<String, Integer>>> list = new LinkedList<>( completedLoadStoreChains.entrySet() );
-		if(1!=1)//SORTING OF 5000 odd elements is time consuming...
+		if(1==1)//SORTING OF 5000 odd elements is time consuming...
 		{
 			Collections.sort( list, new Comparator<Map.Entry<String, HashMap<String, Integer>>>()
 			{
@@ -445,6 +488,8 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 				{
 					HashMap<String, Integer> o1_tL = o1.getValue();
 					HashMap<String, Integer> o2_tL = o2.getValue();
+					int numIns1 = o1.getKey().length() - o1.getKey().replace(",","").length() - 4;
+					int numIns2 = o2.getKey().length() - o2.getKey().replace(",","").length() - 4;
 					int i1 = 0, i2 = 0;
 					for(String s:o1_tL.keySet())
 					{
@@ -454,7 +499,7 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 					{
 						i2 += o2_tL.get(s);
 					}
-					return (i2-i1);
+					return (i2*numIns2-i1*numIns1);
 					//return -1*((o1_tL).compareTo(o2_tL));
 					//return -1*((o1.getValue()).compareTo( o2.getValue() ));
 				}
@@ -465,6 +510,11 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		for(Map.Entry<String, HashMap<String, Integer>> ent: list)
 		{
 			topHalfCounter ++;
+		//	if(topHalfCounter > 100)
+		//	{
+		//		//just to break the large dumpings...
+		//		break;
+		//	}
 			//System.out.println(ent.getKey()+" "+ent.getKey().split(",").length+" > "+GetSrcDest.totalInstructions);
 			//if(ent.getValue() * (ent.getKey().split(",").length-3) > GetSrcDest.totalInstructions*0.01 && ent.getValue() > 50)
 			HashMap<String, Integer> hmap = ent.getValue();
@@ -474,16 +524,72 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 			{
 				total += hmap.get(s);
 			}
-			if(total > THRESHOLD || total * leng * 100.0 / instructions > THRESHOLD_PERC)// || topHalfCounter >= list.size()/2)
+			if(topHalfCounter < 100 && total > THRESHOLD || total * leng * 100.0 / instructions > THRESHOLD_PERC)// || topHalfCounter >= list.size()/2)
 			{
 				if(flag)
 				{
 					System.out.println("top strands: (total = "+completedLoadStoreChains.size()+","+bloatedInstructions+"):"+instructions);
 					flag = false;
 				}
-				for(String s:hmap.keySet())
+				int pcCount = 0;
+				if(hmap.size() <= 10)
 				{
-					System.out.println(ent.getKey()+","+s+","+tid+""+"\t"+hmap.get(s));
+					boolean firstTime = true;
+					for(String s:hmap.keySet())
+					{
+						if(firstTime)
+						{
+							System.out.println(ent.getKey()+","+s+","+tid+""+"\t"+hmap.get(s));
+							firstTime = false;
+						}
+						else
+						{
+							System.out.println("same,"+s+","+tid+""+"\t"+hmap.get(s));
+						}
+					}
+				}
+				else
+				{
+
+					List<Map.Entry<String, Integer>> list_now = new LinkedList<>( hmap.entrySet() );
+					if(1==1)//SORTING OF 5000 odd elements is time consuming...
+					{
+						Collections.sort( list_now, new Comparator<Map.Entry<String, Integer>>()
+						{
+							@Override
+							public int compare( Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2 )
+							{
+								Integer o1_tL = o1.getValue();
+								Integer o2_tL = o2.getValue();
+								return (o2_tL-o1_tL);
+								//return -1*((o1_tL).compareTo(o2_tL));
+								//return -1*((o1.getValue()).compareTo( o2.getValue() ));
+							}
+						} );
+						int printOnly = 10;
+						int tempIterTotal = total;
+						for(Map.Entry<String, Integer> enti:list_now)
+						{
+							printOnly --;
+							if(printOnly == 0)
+							{
+								break;
+							}
+							if(printOnly == 9)
+							{
+								System.out.println(ent.getKey()+","+enti.getKey()+","+tid+""+"\t"+enti.getValue());
+							}
+							else
+							{
+								System.out.println("same,"+enti.getKey()+","+tid+""+"\t"+enti.getValue());
+							}
+							tempIterTotal -= enti.getValue();
+						}
+						if(tempIterTotal > 0)
+						{
+							System.out.println("same,"+"oth"+(hmap.size()-10)+","+tid+""+"\t"+tempIterTotal);
+						}
+					}
 				}
 				myFinalStrands.put(ent.getKey(), total);//ent.getValue()+","+LightStrander.tidStringTracker.get(tid+"")+","+tid+""+"\t"+ent.getValue());
 				//insChainToKey.get(ent.getKey()).verbosePrint();
@@ -493,6 +599,15 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 				//mark for deleting?
 				toDelete.put(ent.getKey(), total);
 			}
+		}
+		if(toDelete.size() == completedLoadStoreChains.size())
+		{
+			THRESHOLD -= 10;
+			if (THRESHOLD < 10)
+			{
+				THRESHOLD = 10;
+			}
+			System.out.println("THRESHOLD is too high!: "+THRESHOLD);
 		}
 		System.out.println("Going to delete");
 		for(String s:toDelete.keySet())

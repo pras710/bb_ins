@@ -9,6 +9,7 @@ public class ChainData implements Serializable//<ChainData>
 	String ins_name, ins_name_orig;
 	short insCount;
 	String pc;
+	byte bloatFactor;
 	ArrayList<ArrayList<String>> inouts;
 //	boolean verbosePrintedOnce = false;
 	public void readObject(ObjectInputStream in)throws IOException, ClassNotFoundException
@@ -22,6 +23,7 @@ public class ChainData implements Serializable//<ChainData>
 		//insCount = (Integer)in.readObject();
 		pc = (String)in.readObject();
 		inouts = (ArrayList<ArrayList<String>>)in.readObject();
+		bloatFactor = (Byte)in.readObject();
 	}
 	public void writeObject(ObjectOutputStream out)throws IOException
 	{
@@ -34,6 +36,7 @@ public class ChainData implements Serializable//<ChainData>
 		//out.writeObject((Integer)insCount);
 		out.writeObject(pc);
 		out.writeObject(inouts);
+		out.writeObject(bloatFactor);
 	}
 	public boolean isCoprocInstruction()
 	{
@@ -42,6 +45,7 @@ public class ChainData implements Serializable//<ChainData>
 	public ChainData(InsTypeInterface insType, String op, String comments, int insCount,  ArrayList<ArrayList<String>> inouts)
 	{
 		this.inouts = inouts;
+		this.bloatFactor = (byte)(inouts.get(0).size()+inouts.get(1).size());
 		try
 		{
 			comments = comments.trim();
@@ -112,7 +116,7 @@ public class ChainData implements Serializable//<ChainData>
 			new String[]{"ld", "pop"},
 			new String[]{"st", "push"},
 			new String[]{"mov", "mv", "mcr", "mrc", "msr", "mrs", "mrx","mxr", "cvt", "tos", "tou", "tod", "cpy", "nop"},
-			new String[]{"j", "tbh", "b." ,"bl", "bx", "tb"},
+			new String[]{"j", "tbh", "beq.", "bne.", "b.", "bhi.","bl", "bx", "tb"},
 		};
 		//String [][]nom = new String[][]{new String[]{"add", "sub"}, 
 		//								new String[]{"mul", "div"}, 

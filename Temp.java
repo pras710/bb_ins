@@ -18,12 +18,14 @@ public class Temp extends Thread
 	}
 	public static void main(String args[])throws Exception
 	{
-		for(int i = 0; i < 10; i++)
-		{
-			Temp t1 = new Temp();
-			t1.id = i;
-			new Thread(t1).start();
-		}
-		Thread.sleep(50000);
+		String ab =  "a, b, c, d, e, f, g";
+		System.out.println(ab.replace(",",""));
+		System.out.println(ab.replaceAll(",",""));
+
+
+
+
+
+
 	}
 }

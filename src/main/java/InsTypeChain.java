@@ -7,6 +7,7 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 	//NOT SCALING WELL TreeSet<Long> lineNumberOccurrence;
 	//TreeSet<BasicBlock> lineNumberOccurrence;
 	boolean isCoprocBasedChain = false, containsLoad = false;
+	short bloatFactor = 0;
 	public void writeObject(ObjectOutputStream out)throws IOException
 	{
 		out.writeObject(myChainDefinition);
@@ -37,6 +38,7 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 			{
 				isCoprocBasedChain |= cd.isCoprocInstruction();
 				containsLoad |= cd.ins_name.equals("ld");
+				bloatFactor += cd.bloatFactor;
 			}
 		}
 		//lineNumberOccurrence = new TreeSet<>();
@@ -64,6 +66,7 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 		myChainDefinition.add(interd);
 		isCoprocBasedChain |= interd.isCoprocInstruction();
 		containsLoad |= (interd.ins_name.indexOf("ld")!=-1);
+		bloatFactor += interd.bloatFactor;
 	}
 	public InsTypeChain copyTillStore(InsTypeChain ret)
 	{
@@ -76,6 +79,7 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 		for(; i < myChainDefinition.size(); i++)
 		{
 			ChainData cd_now = myChainDefinition.get(i);
+			bloatFactor += cd_now.bloatFactor;
 			ret.myChainDefinition.add(cd_now);
 			ret.isCoprocBasedChain |= cd_now.isCoprocInstruction();
 			ret.containsLoad |= cd_now.ins_name.equals("ld");
@@ -94,6 +98,7 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 		for(i =0; i < myChainDefinition.size(); i++)
 		{
 			ChainData cd_now = myChainDefinition.get(i);
+			bloatFactor += cd_now.bloatFactor;
 			if(cd_now.ins_name.contains(loadString))
 			{
 				break;
@@ -107,6 +112,7 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 			for(;i < myChainDefinition.size(); i++)
 			{
 				ChainData interd = myChainDefinition.get(i);
+				ret.bloatFactor += interd.bloatFactor;
 				ret.isCoprocBasedChain |= interd.isCoprocInstruction();
 				ret.containsLoad |= (interd.ins_name.indexOf("ld")!=-1);//containsLoad;
 				ret.addToChain(interd);
@@ -137,6 +143,7 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 		}
 
 		myChainDefinition.addAll(insd.myChainDefinition);
+		bloatFactor += insd.bloatFactor;
 		isCoprocBasedChain |= insd.isCoprocBasedChain;
 		containsLoad |= insd.containsLoad;
 //		this.lineNumberOccurrence.addAll(insd.lineNumberOccurrence);
@@ -144,6 +151,7 @@ public class InsTypeChain implements Serializable//<InsTypeChain>
 	public void addToChain(ChainData insd)
 	{
 		myChainDefinition.add(insd);
+		bloatFactor += insd.bloatFactor;
 		isCoprocBasedChain |= insd.isCoprocInstruction();
 		containsLoad |= (insd.ins_name.indexOf("ld")!=-1);//containsLoad;
 	}
