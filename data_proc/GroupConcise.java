@@ -739,7 +739,7 @@ public class GroupConcise
 		for(String file:dirContents)
 		{
 			//if(file.indexOf("music")==-1)continue;
-			if(file.endsWith("photogallery_final_strand_dump"))
+			if(file.endsWith("map_final_strand_dump"))
 			{
 				masterChain.totalCounter = 0;
 				String key = "map";

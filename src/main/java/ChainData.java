@@ -108,15 +108,16 @@ public class ChainData implements Serializable//<ChainData>
 	public void putANewNameForMe()
 	{
 
-		String [][]nom = new String[][]{new String[]{"add", "sub", "adc", "neg", "abs"}, 
-			new String[]{"mul", "div", "ml", "mac", "msc", "sqrt"}, 
-			new String[]{"and", "cb", "or", "not", "bi", "sb", "bf", "sxt", "uxt", "ub", "rev"},
-			new String[]{"rsb", "lsb", "lsr", "rsr", "asr", "clz","rsl", "lsl"},
-			new String[]{"cmp", "cmn", "tst", "teq"},
+		String [][]nom = new String[][]{
+		//	new String[]{"add", "sub", "adc", "neg", "abs"}, 
+		//	new String[]{"mul", "div", "ml", "mac", "msc", "sqrt"}, 
+		//	new String[]{"and", "cb", "or", "not", "bi", "sb", "bf", "sxt", "uxt", "ub", "rev"},
+		//	new String[]{"rsb", "lsb", "lsr", "rsr", "asr", "clz","rsl", "lsl"},
+		//	new String[]{"cmp", "cmn", "tst", "teq"},
 			new String[]{"ld", "pop"},
 			new String[]{"st", "push"},
-			new String[]{"mov", "mv", "mcr", "mrc", "msr", "mrs", "mrx","mxr", "cvt", "tos", "tou", "tod", "cpy", "nop"},
-			new String[]{"j", "tbh", "beq.", "bne.", "b.", "bhi.","bl", "bx", "tb"},
+		//	new String[]{"mov", "mv", "mcr", "mrc", "msr", "mrs", "mrx","mxr", "cvt", "tos", "tou", "tod", "cpy", "nop"},
+		//	new String[]{"j", "tbh", "beq.", "bne.", "b.", "bhi.","bl", "bx", "tb"},
 		};
 		//String [][]nom = new String[][]{new String[]{"add", "sub"}, 
 		//								new String[]{"mul", "div"}, 

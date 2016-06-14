@@ -4,7 +4,7 @@ import java.io.*;
 public class StrandMaintainer implements Serializable//<StrandMaintainer>
 {
 	public int THRESHOLD = 20;//THE TOP HALF COUNTER WILL TAKE CARE OF THE LIMITATIONS
-	public static final int THRESHOLD_1000 = 250;
+	public static final int THRESHOLD_1000 = 500;
 	public static final byte THRESHOLD_PERC = 5;
 	//public static final boolean PRINT_ALL_STRANDS = true;
 	public static final boolean PRINT_ALL_STRANDS = false;
@@ -94,7 +94,7 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 	}
 	public void clearMore()
 	{
-		System.out.println(completedLoadStoreChains.size()+" "+findSizeOf()+" "+activeLoadStoreChains.keySet());
+		//System.out.println(completedLoadStoreChains.size()+" "+findSizeOf()+" "+activeLoadStoreChains.keySet());
 		if(1==1)return;	
 		int chain = 0;
 		int max = 0;
@@ -167,11 +167,11 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 			{
 
 				String sTt = cd.operandName;
-				if(sTt.indexOf("-68")!=-1 || sTt.indexOf("112")!=-1 || sTt.indexOf("-60")!=-1 || sTt.indexOf("40")!=-1 || sTt.indexOf("80")!=-1 || sTt.indexOf("-54")!=-1)
-				{
-					System.out.println(cd.comments+" +++===== "+sTt+" "+cd.operandName+" "+cd.inouts);
-					System.exit(0);
-				}
+//				if(sTt.indexOf("-68")!=-1 || sTt.indexOf("112")!=-1 || sTt.indexOf("-60")!=-1 || sTt.indexOf("40")!=-1 || sTt.indexOf("80")!=-1 || sTt.indexOf("-54")!=-1)
+//				{
+//					System.out.println(cd.comments+" +++===== "+sTt+" "+cd.operandName+" "+cd.inouts);
+//					System.exit(0);
+//				}
 				switch(cd.ins_name)
 				{
 					case "ld":
@@ -186,13 +186,13 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 							{
 								myDest = new HashSet<>();
 								activeLoadStoreChains.put(myOuts, myDest);
-								try
-								{
-									Integer.parseInt(myOuts);
-									System.out.println(cd.comments+" ===== "+myOuts+" "+cd.operandName+" "+cd.inouts);
-					System.exit(0);
-								}
-								catch(Exception e){}
+								//try
+								//{
+								//	Integer.parseInt(myOuts);
+								//	System.out.println(cd.comments+" ===== "+myOuts+" "+cd.operandName+" "+cd.inouts);
+								//	System.exit(0);
+								//}
+								//catch(Exception e){}
 							}
 						}
 						for(String myOuts:cd.inouts.get(1))
@@ -408,7 +408,7 @@ public class StrandMaintainer implements Serializable//<StrandMaintainer>
 		}
 		if(ins.size() > THRESHOLD_1000)
 		{
-			System.out.println("size =  "+ins.size());
+//			System.out.println("size =  "+ins.size());
 			return;
 		}
 		idealize_counter++;

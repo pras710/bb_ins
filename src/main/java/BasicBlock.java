@@ -833,9 +833,58 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 			e.printStackTrace();
 			System.exit(0);
 		}
+		boolean found[] = new boolean[memoryLines.size()];
+		ArrayList<ArrayList<ArrayList<String>>> addressList = new ArrayList<>();
+		for(int i = 0; i < instructions.size(); i++)
+		{
+			ArrayList<ArrayList<String>> addrList = new ArrayList<ArrayList<String>>();
+			addrList.add(new ArrayList<String>());
+			addrList.add(new ArrayList<String>());
+			addressList.add(addrList);
+			String pcInsNow = instructions.get(i).split(" ")[0].trim();
+			for(int j = 0; j < memoryLines.size(); j++)
+			{
+				if(!found[j] && !memoryLines.get(j).startsWith("before entering"))
+				{
+					String s = memoryLines.get(j);
+					if(s.indexOf("("+pcInsNow)!=-1)
+					{
+						String tem[] = s.split("=")[0].split(",");
+						String toAdd = tem[tem.length - 1].trim();
+						toAdd = toAdd.substring(0, toAdd.length()-1);
+						if(s.indexOf("ld")!=-1)
+						{
+							addrList.get(0).add(toAdd);
+						}
+						else
+						{
+							addrList.get(1).add(toAdd);
+						}
+					}
+					found[j] = true;
+				}
+			}
+		}
+//		for(int i = 0; i < memoryLines.size(); i++)
+//		{
+//			if(!memoryLines.get(i).startsWith("before entering"))
+//			{
+//				if(found[i])
+//				{
+//					System.out.println(memoryLines.get(i)+" is found!!!");
+//				}
+//				else
+//				{
+//					System.out.println(memoryLines.get(i)+" is not found!!!");
+//				}
+//			}
+//		}
+		//System.out.println(addressList);
+		int jj = 0;
 		for(String ins:instructions)
 		{
-			ArrayList<ArrayList<String>> atliem = manageInstructionParams(ins, insCount++, dummyInputNodePHI);
+			ArrayList<ArrayList<String>> atliem = manageInstructionParams(ins, insCount++, dummyInputNodePHI, addressList.get(jj));
+			jj++;
 	//		System.out.println(ins+" "+myInsType.get(insCount - 1)+" "+atliem);
 		}
 		//PRAS REMOVE THIS COMMENT the maintain my dependence ends is important!!!
@@ -861,7 +910,7 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 	boolean culpritDetector = true;
 	String culpritString = "";
 	static Hashtable<String, Integer> ht_insFails = new Hashtable<>();
-	public ArrayList<ArrayList<String>> manageInstructionParams(String ins, int insCount, DataFlowNode dummyInputNodePHI)
+	public ArrayList<ArrayList<String>> manageInstructionParams(String ins, int insCount, DataFlowNode dummyInputNodePHI, ArrayList<ArrayList<String>> addressList)
 	{
 		ins = ins.trim();
 		//culpritDetector = (startingPC == 0x40043dc0);
@@ -957,7 +1006,6 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 					if(insType == Ins32BitTypes.DataProcPSRTransfer)
 					{
 						System.out.println("original = "+insTypeO+alist);
-
 					}
 					//boolean test = checkInOutForCredibility(alist, ins, opcd);
 					//if(test)
@@ -1074,6 +1122,10 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 //			{
 //				System.out.println(alist+" "+ins+" ");
 //			}
+			
+			alist.get(0).addAll(addressList.get(0));
+			alist.get(1).addAll(addressList.get(1));
+
 			defUserFormation(alist, result, hexpc, ins, insType, insCount, dummyInputNodePHI );
 			passedIns++;
 			Integer cou = ht_insFails.get(insType.toString()+"pass");
@@ -1097,6 +1149,13 @@ public class BasicBlock implements Serializable, Comparable<BasicBlock>
 	}
 	public boolean checkInOutForCredibility(ArrayList<ArrayList<String> > alist, String ins, String opcd)
 	{
+		/*
+		 *TODO:
+		 Get the pc of the next instruction. instead of pcIns. also, if there are any memory lines without any matching pc, attribute that to the last instruction in the bb
+		 *
+		 *
+		 * */
+		String pcIns = ins.split(" ")[0].trim();
 		ArrayList< ArrayList<String> > retList = new ArrayList<>();
 		ins = ins.replaceAll("cr", "cKt");//some unused character..
 		ins = ins.replaceAll("r12","ip")
